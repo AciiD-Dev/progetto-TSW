@@ -16,49 +16,32 @@ const PUBLIC_PREFIXES = [
   '/fonts/',
   '/icons/',
   '/images/',
-  '/public/',
 ];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow public paths exactly
+  // Allow public exact paths
   if (PUBLIC_PATHS.includes(pathname)) {
     return NextResponse.next();
   }
 
-  // Allow public prefixes (static assets, API, Next internals)
+  // Allow public prefixes (API routes, Next internals, static assets)
   if (PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
     return NextResponse.next();
   }
 
-  // Allow Next.js RSC / prefetch internal requests
-  // These are identified by ?_rsc= query param or specific headers
-  const isRSC = request.headers.get('rsc') === '1'
-    || request.nextUrl.searchParams.has('_rsc')
-    || request.headers.get('next-router-state-tree') !== null;
-
   const session = request.cookies.get(COOKIE_NAME);
 
-  // For RSC/internal requests, if cookie missing just pass through
-  // (the page itself is protected — this avoids ERR_FAILED loops)
-  if (isRSC && !session) {
-    return NextResponse.next();
-  }
-
   if (!session) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = '/login';
-    loginUrl.search = '';
+    const loginUrl = new URL('/login', request.url);
     return NextResponse.redirect(loginUrl);
   }
 
   const payload = await verifyToken(session.value);
 
   if (!payload) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = '/login';
-    loginUrl.search = '';
+    const loginUrl = new URL('/login', request.url);
     return NextResponse.redirect(loginUrl);
   }
 
@@ -69,8 +52,36 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Exclude static files, images, and Next.js internals from middleware
+  /*
+   * Next.js 16 official pattern: use 'missing' to skip the proxy for
+   * prefetch requests entirely (before the function body runs).
+   *
+   * IMPORTANT: Next.js STRIPS RSC/Flight headers (rsc, next-router-state-tree,
+   * next-router-prefetch) before they reach the proxy function, so you CANNOT
+   * detect RSC requests inside the function — use the matcher config instead.
+   *
+   * Source: proxy.md docs, "RSC requests and rewrites" + "Negative matching"
+   */
   matcher: [
-    '/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)).*)',
+    // Non-prefetch requests — proxy runs normally
+    {
+      source:
+        '/((?!api|_next/static|_next/image|favicon\\.ico|sitemap\\.xml|robots\\.txt).*)',
+      missing: [
+        { type: 'header', key: 'next-router-prefetch' },
+        { type: 'header', key: 'purpose', value: 'prefetch' },
+      ],
+    },
+    // Prefetch requests — also run proxy so auth cookie is checked
+    {
+      source:
+        '/((?!api|_next/static|_next/image|favicon\\.ico|sitemap\\.xml|robots\\.txt).*)',
+      has: [{ type: 'header', key: 'next-router-prefetch' }],
+    },
+    {
+      source:
+        '/((?!api|_next/static|_next/image|favicon\\.ico|sitemap\\.xml|robots\\.txt).*)',
+      has: [{ type: 'header', key: 'purpose', value: 'prefetch' }],
+    },
   ],
 };
