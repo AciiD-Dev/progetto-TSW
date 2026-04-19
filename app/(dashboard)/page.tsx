@@ -247,27 +247,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Live Sensor Ticker */}
-        <div className="lg:col-span-3 bg-surface-container rounded-2xl border border-outline-variant/20 p-5">
-          <h3 className="headline-font font-bold text-on-surface mb-4">Live Sensor Readings</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {liveData.map((d) => (
-              <div
-                key={d.device_id}
-                className="bg-surface-container-high rounded-xl p-3 border border-outline-variant/20"
-              >
-                <p className="text-xs text-on-surface-variant font-medium mb-1">
-                  Device #{d.device_id}
-                </p>
-                <p className="text-xl font-bold text-on-surface tabular-nums">
-                  {d.value}
-                  <span className="text-sm font-normal text-on-surface-variant ml-1">{d.unit}</span>
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* Device Control Panel */}
         <div className="lg:col-span-3 bg-surface-container rounded-2xl border border-outline-variant/20 p-5">
           <h3 className="headline-font font-bold text-on-surface mb-4">Device Control</h3>
