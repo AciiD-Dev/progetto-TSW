@@ -72,40 +72,24 @@ export default function DashboardPage() {
     { id: 'alerts', props: { icon: "notifications_active", label: "Active Alerts" } },
   ]);
 
+  // Single mount effect — waits for hydration to complete, then:
+  // 1. restores card order from localStorage
+  // 2. fetches devices, rooms, and chart data
   useEffect(() => {
-    const saved = localStorage.getItem('homehub-metric-cards');
-    if (saved) {
-      try {
+    // Restore saved card order from localStorage
+    try {
+      const saved = localStorage.getItem('homehub-metric-cards');
+      if (saved) {
         const order = JSON.parse(saved);
         setCards(prev => {
           const newCards = order.map((id: string) => prev.find(c => c.id === id)).filter(Boolean);
-          if (newCards.length === prev.length) return newCards as any;
+          if (newCards.length === prev.length) return newCards as typeof prev;
           return prev;
         });
-      } catch {}
-    }
-  }, []);
+      }
+    } catch {}
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-      setCards((items) => {
-        const oldIndex = items.findIndex((i) => i.id === active.id);
-        const newIndex = items.findIndex((i) => i.id === over.id);
-        const newArray = arrayMove(items, oldIndex, newIndex);
-        localStorage.setItem('homehub-metric-cards', JSON.stringify(newArray.map(c => c.id)));
-        return newArray;
-      });
-    }
-  };
-
-  // Initial load: devices + rooms + chart data
-  useEffect(() => {
+    // Fetch initial data
     Promise.all([
       fetch('/api/devices').then((r) => r.json()),
       fetch('/api/rooms').then((r) => r.json()),
@@ -133,6 +117,24 @@ export default function DashboardPage() {
         setChartReady(true);
       });
   }, []);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setCards((items) => {
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over.id);
+        const newArray = arrayMove(items, oldIndex, newIndex);
+        localStorage.setItem('homehub-metric-cards', JSON.stringify(newArray.map(c => c.id)));
+        return newArray;
+      });
+    }
+  };
 
   // Real-time SSE
   useEffect(() => {
