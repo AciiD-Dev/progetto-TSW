@@ -1,0 +1,295 @@
+'use client';
+
+import React, { useEffect, useState, useCallback } from 'react';
+import dynamic from 'next/dynamic';
+import Link from 'next/link';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  horizontalListSortingStrategy,
+  sortableKeyboardCoordinates,
+} from '@dnd-kit/sortable';
+import SortableMetricCard from '@/components/SortableMetricCard';
+import DeviceCard from '@/components/DeviceCard';
+import { SensorReading, Room, Device } from '@/types';
+
+const TemperatureChart = dynamic(
+  () => import('@/components/TemperatureChart'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="bg-surface-container rounded-2xl border border-outline-variant/20 h-[268px] flex items-center justify-center">
+        <span className="material-symbols-outlined text-3xl text-on-surface-variant/20 animate-spin">progress_activity</span>
+      </div>
+    ),
+  }
+);
+
+interface LiveReading {
+  device_id: number;
+  value: number;
+  unit: string;
+}
+
+const QUICK_ACTIONS = [
+  { label: 'All Lights Off',  icon: 'lightbulb',      color: 'text-warning',   bg: 'bg-warning/10',   border: 'border-warning/20'   },
+  { label: 'Night Mode',      icon: 'bedtime',         color: 'text-secondary', bg: 'bg-secondary/10', border: 'border-secondary/20' },
+  { label: 'Away Mode',       icon: 'directions_walk', color: 'text-primary',   bg: 'bg-primary/10',   border: 'border-primary/20'   },
+  { label: 'Eco Mode',        icon: 'eco',             color: 'text-tertiary',  bg: 'bg-tertiary/10',  border: 'border-tertiary/20'  },
+];
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
+export default function DashboardPage() {
+  const [readings,    setReadings]    = useState<SensorReading[]>([]);
+  const [liveData,    setLiveData]    = useState<LiveReading[]>([]);
+  const [rooms,       setRooms]       = useState<Room[]>([]);
+  const [devices,     setDevices]     = useState<Device[]>([]);
+  const [devicesOn,   setDevicesOn]   = useState<number>(0);
+  const [avgTemp,     setAvgTemp]     = useState<string>('—');
+  const [avgHum,      setAvgHum]      = useState<string>('—');
+  const [activeAlerts,setActiveAlerts]= useState<number>(0);
+  const [chartReady,  setChartReady]  = useState(false);
+
+  const [cards, setCards] = useState([
+    { id: 'temp',   props: { icon: "thermostat", label: "Avg Temperature", unit: "°C", color: "primary", description: "Across all thermostat sensors" } },
+    { id: 'power',  props: { icon: "power", label: "Devices On", color: "secondary", description: "Currently active devices" } },
+    { id: 'humidity', props: { icon: "humidity_mid", label: "Avg Humidity", unit: "%", color: "tertiary", description: "Across all humidity sensors" } },
+    { id: 'alerts', props: { icon: "notifications_active", label: "Active Alerts" } },
+  ]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('homehub-metric-cards');
+    if (saved) {
+      try {
+        const order = JSON.parse(saved);
+        setCards(prev => {
+          const newCards = order.map((id: string) => prev.find(c => c.id === id)).filter(Boolean);
+          if (newCards.length === prev.length) return newCards as any;
+          return prev;
+        });
+      } catch {}
+    }
+  }, []);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setCards((items) => {
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over.id);
+        const newArray = arrayMove(items, oldIndex, newIndex);
+        localStorage.setItem('homehub-metric-cards', JSON.stringify(newArray.map(c => c.id)));
+        return newArray;
+      });
+    }
+  };
+
+  // Initial load: devices + rooms + chart data
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/devices').then((r) => r.json()),
+      fetch('/api/rooms').then((r) => r.json()),
+    ])
+      .then(([devicesData, roomsData]: [Device[], Room[]]) => {
+        setDevicesOn(devicesData.filter((d) => d.status === 1).length);
+        setDevices(devicesData);
+        setRooms(roomsData);
+
+        const firstThermostat = devicesData.find((d) => d.type === 'thermostat');
+        if (!firstThermostat) {
+          setChartReady(true);
+          return;
+        }
+
+        return fetch(`/api/readings?deviceId=${firstThermostat.id}&range=24h`)
+          .then((r) => r.json())
+          .then((data: SensorReading[]) => {
+            setReadings(Array.isArray(data) ? data : []);
+            setChartReady(true);
+          });
+      })
+      .catch((err) => {
+        console.error('[dashboard init]', err);
+        setChartReady(true);
+      });
+  }, []);
+
+  // Real-time SSE
+  useEffect(() => {
+    const es = new EventSource('/api/events/stream');
+    es.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.readings) {
+          setLiveData(data.readings);
+          const temps = data.readings.filter((d: LiveReading) => d.unit === '°C');
+          if (temps.length > 0) {
+            const avg = temps.reduce((s: number, d: LiveReading) => s + d.value, 0) / temps.length;
+            setAvgTemp(avg.toFixed(1));
+          }
+          const hums = data.readings.filter((d: LiveReading) => d.unit === '%');
+          if (hums.length > 0) {
+            const avg = hums.reduce((s: number, d: LiveReading) => s + d.value, 0) / hums.length;
+            setAvgHum(avg.toFixed(0));
+          }
+        }
+        if (typeof data.activeAlerts === 'number') {
+          setActiveAlerts(data.activeAlerts);
+        }
+      } catch (err) {
+        console.error('[SSE parse]', err);
+      }
+    };
+    return () => es.close();
+  }, []);
+
+  const handleToggle = async (device: Device, newStatus: number) => {
+    setDevices((prev) => prev.map((d) => (d.id === device.id ? { ...d, status: newStatus } : d)));
+    try {
+      await fetch(`/api/devices/${device.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+    } catch {
+      setDevices((prev) => prev.map((d) => (d.id === device.id ? { ...d, status: device.status } : d)));
+    }
+  };
+
+  const handleSliderChange = async (device: Device, newValue: number) => {
+    setDevices((prev) => prev.map((d) => (d.id === device.id ? { ...d, value: newValue } : d)));
+    try {
+      await fetch(`/api/devices/${device.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value: newValue }),
+      });
+    } catch {
+      setDevices((prev) => prev.map((d) => (d.id === device.id ? { ...d, value: device.value } : d)));
+    }
+  };
+
+  return (
+    <div className="space-y-6 animate-fade-in-up">
+      {/* Header */}
+      <div>
+        <h1 className="headline-font text-2xl font-bold text-on-surface">
+          {getGreeting()}, Daniele
+        </h1>
+        <p className="text-sm text-on-surface-variant mt-0.5">
+          Your home at a glance · Live updates every 5s
+        </p>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {QUICK_ACTIONS.map((action) => (
+          <button
+            key={action.label}
+            className={`flex flex-col items-center justify-center p-4 rounded-xl border ${action.border} ${action.bg} text-on-surface-variant hover:text-on-surface hover:border-outline-variant/60 transition-all`}
+          >
+            <span className={`material-symbols-outlined text-2xl ${action.color}`}>{action.icon}</span>
+            <span className="text-xs font-medium mt-2">{action.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Metric Cards */}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={cards.map(c => c.id)} strategy={horizontalListSortingStrategy}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {cards.map(card => {
+              if (card.id === 'temp') return <SortableMetricCard key={card.id} id={card.id} value={avgTemp} {...card.props} />;
+              if (card.id === 'power') return <SortableMetricCard key={card.id} id={card.id} value={devicesOn} {...card.props} />;
+              if (card.id === 'humidity') return <SortableMetricCard key={card.id} id={card.id} value={avgHum} {...card.props} />;
+              if (card.id === 'alerts') return <SortableMetricCard key={card.id} id={card.id} value={activeAlerts} description={activeAlerts > 0 ? "Action required" : "No issues detected"} {...card.props} color={activeAlerts > 0 ? "error" : "tertiary"} />;
+              return null;
+            })}
+          </div>
+        </SortableContext>
+      </DndContext>
+
+      {/* Bento Grid Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        {/* Chart */}
+        <div className="lg:col-span-2 bg-surface-container rounded-2xl border border-outline-variant/20 p-5">
+          <h3 className="headline-font font-bold text-on-surface mb-4">Temperature Trends</h3>
+          {chartReady && <TemperatureChart readings={readings} title="Living Room Temperature" subtitle="Last 24 hours" color="primary" />}
+        </div>
+
+        {/* Rooms Panel */}
+        <div className="bg-surface-container rounded-2xl border border-outline-variant/20 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="headline-font font-bold text-on-surface">Rooms</h3>
+            <Link href="/rooms" className="text-sm text-primary hover:underline">View All</Link>
+          </div>
+          <div className="space-y-3">
+            {rooms.map((room) => (
+              <Link href={`/rooms/${room.id}`} key={room.id} className="flex items-center justify-between bg-surface-container-high rounded-xl p-3 border border-outline-variant/20 hover:border-primary/50 transition-all">
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-xl text-on-surface-variant">{room.icon}</span>
+                  <div>
+                    <p className="font-medium text-on-surface">{room.name}</p>
+                    <p className="text-xs text-on-surface-variant">{devices.filter(d => d.room_id === room.id).length} devices</p>
+                  </div>
+                </div>
+                <span className="material-symbols-outlined text-on-surface-variant">arrow_forward_ios</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* Live Sensor Ticker */}
+        <div className="lg:col-span-3 bg-surface-container rounded-2xl border border-outline-variant/20 p-5">
+          <h3 className="headline-font font-bold text-on-surface mb-4">Live Sensor Readings</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {liveData.map((d) => (
+              <div
+                key={d.device_id}
+                className="bg-surface-container-high rounded-xl p-3 border border-outline-variant/20"
+              >
+                <p className="text-xs text-on-surface-variant font-medium mb-1">
+                  Device #{d.device_id}
+                </p>
+                <p className="text-xl font-bold text-on-surface tabular-nums">
+                  {d.value}
+                  <span className="text-sm font-normal text-on-surface-variant ml-1">{d.unit}</span>
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Device Control Panel */}
+        <div className="lg:col-span-3 bg-surface-container rounded-2xl border border-outline-variant/20 p-5">
+          <h3 className="headline-font font-bold text-on-surface mb-4">Device Control</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {devices.map((device) => (
+              <DeviceCard key={device.id} device={device} onToggle={handleToggle} onSliderChange={handleSliderChange} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
