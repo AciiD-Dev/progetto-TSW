@@ -257,7 +257,15 @@ export default function RoomDetailPage({
           <span className="material-symbols-outlined text-[18px] text-warning">thermostat</span>
           <div>
             <p className="text-base font-bold text-on-surface headline-font leading-none tabular-nums">
-              {liveData.find(d => d.unit === '°C' && devices.some(dev => dev.id === d.device_id))?.value.toFixed(1) ?? '—'}°C
+              {(() => {
+                const thermostats = devices.filter(d => d.type === 'thermostat');
+                if (thermostats.length === 0) return '—';
+                const vals = thermostats.map(d =>
+                  liveData.find(l => l.device_id === d.id)?.value ?? d.value
+                );
+                const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+                return `${avg.toFixed(1)}°C`;
+              })()}
             </p>
             <p className="text-[10px] text-on-surface-variant/60 mt-0.5">Avg Temp</p>
           </div>
