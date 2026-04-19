@@ -1,12 +1,11 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import {
   DndContext,
   closestCenter,
-  KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
@@ -16,7 +15,6 @@ import {
   arrayMove,
   SortableContext,
   horizontalListSortingStrategy,
-  sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
 import SortableMetricCard from '@/components/SortableMetricCard';
 import DeviceCard from '@/components/DeviceCard';
@@ -34,12 +32,6 @@ const TemperatureChart = dynamic(
   }
 );
 
-interface LiveReading {
-  device_id: number;
-  value: number;
-  unit: string;
-}
-
 const QUICK_ACTIONS = [
   { label: 'All Lights Off',  icon: 'lightbulb',      color: 'text-warning',   bg: 'bg-warning/10',   border: 'border-warning/20'   },
   { label: 'Night Mode',      icon: 'bedtime',         color: 'text-secondary', bg: 'bg-secondary/10', border: 'border-secondary/20' },
@@ -56,7 +48,6 @@ function getGreeting() {
 
 export default function DashboardPage() {
   const [readings,    setReadings]    = useState<SensorReading[]>([]);
-  const [liveData,    setLiveData]    = useState<LiveReading[]>([]);
   const [rooms,       setRooms]       = useState<Room[]>([]);
   const [devices,     setDevices]     = useState<Device[]>([]);
   const [devicesOn,   setDevicesOn]   = useState<number>(0);
@@ -118,10 +109,9 @@ export default function DashboardPage() {
       });
   }, []);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
+  // KeyboardSensor disabled — it generates aria-describedby IDs that
+  // mismatch between SSR and client, causing hydration errors.
+  const sensors = useSensors(useSensor(PointerSensor));
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -136,27 +126,23 @@ export default function DashboardPage() {
     }
   };
 
-  // Real-time SSE
+  // Real-time SSE — stream sends { type, data: { activeDevices, avgTemperature, avgHumidity } }
   useEffect(() => {
     const es = new EventSource('/api/events/stream');
     es.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data);
-        if (data.readings) {
-          setLiveData(data.readings);
-          const temps = data.readings.filter((d: LiveReading) => d.unit === '°C');
-          if (temps.length > 0) {
-            const avg = temps.reduce((s: number, d: LiveReading) => s + d.value, 0) / temps.length;
-            setAvgTemp(avg.toFixed(1));
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'update' && msg.data) {
+          const { avgTemperature, avgHumidity, activeDevices } = msg.data;
+          if (avgTemperature !== null && avgTemperature !== undefined) {
+            setAvgTemp(String(avgTemperature));
           }
-          const hums = data.readings.filter((d: LiveReading) => d.unit === '%');
-          if (hums.length > 0) {
-            const avg = hums.reduce((s: number, d: LiveReading) => s + d.value, 0) / hums.length;
-            setAvgHum(avg.toFixed(0));
+          if (avgHumidity !== null && avgHumidity !== undefined) {
+            setAvgHum(String(avgHumidity));
           }
-        }
-        if (typeof data.activeAlerts === 'number') {
-          setActiveAlerts(data.activeAlerts);
+          if (typeof activeDevices === 'number') {
+            setDevicesOn(activeDevices);
+          }
         }
       } catch (err) {
         console.error('[SSE parse]', err);
