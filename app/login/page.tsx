@@ -6,18 +6,18 @@ import Link from 'next/link';
 
 
 const features = [
-  { icon: 'thermostat',   color: 'text-secondary', bg: 'bg-secondary/10', title: 'Climate Control',   desc: 'Monitor and adjust temperature across every room in real time.' },
-  { icon: 'lightbulb',    color: 'text-warning',   bg: 'bg-warning/10',   title: 'Smart Lighting',    desc: 'Toggle, dim and schedule your lights from anywhere.' },
-  { icon: 'sensors',      color: 'text-primary',   bg: 'bg-primary/10',   title: 'Live Sensor Data',  desc: 'Humidity, temperature, and more — updated every 5 seconds.' },
-  { icon: 'bar_chart',    color: 'text-tertiary',  bg: 'bg-tertiary/10',  title: 'Historical Trends', desc: 'View 24h and 7-day charts for any device in your home.' },
+  { icon: 'thermostat', color: 'text-secondary', bg: 'bg-secondary/10', title: 'Climate Control', desc: 'Monitor and adjust temperature across every room in real time.' },
+  { icon: 'lightbulb', color: 'text-warning', bg: 'bg-warning/10', title: 'Smart Lighting', desc: 'Toggle, dim and schedule your lights from anywhere.' },
+  { icon: 'sensors', color: 'text-primary', bg: 'bg-primary/10', title: 'Live Sensor Data', desc: 'Humidity, temperature, and more — updated every 5 seconds.' },
+  { icon: 'bar_chart', color: 'text-tertiary', bg: 'bg-tertiary/10', title: 'Historical Trends', desc: 'View 24h and 7-day charts for any device in your home.' },
 ];
 
 export default function LoginPage() {
-  const [email,    setEmail]    = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
-  const [error,    setError]    = useState('');
-  const [loading,  setLoading]  = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,9 +44,8 @@ export default function LoginPage() {
         return;
       }
 
-      // Cookie is set by the server (HttpOnly).
-      // Redirect to /rooms (root / has a Vercel-specific ERR_FAILED).
-      window.location.href = '/rooms';
+      // Cookie set by server (HttpOnly) — hard redirect to dashboard.
+      window.location.href = '/';
     } catch {
       setError('Network error. Please try again.');
       setLoading(false);
