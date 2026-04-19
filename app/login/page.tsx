@@ -2,7 +2,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 
@@ -14,7 +13,6 @@ const features = [
 ];
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -46,9 +44,10 @@ export default function LoginPage() {
         return;
       }
 
-      // Cookie is set by the server (HttpOnly) — just navigate
-      router.push('/');
-      router.refresh();
+      // Cookie is set by the server (HttpOnly).
+      // Use a hard redirect instead of router.push to avoid RSC
+      // navigation issues on Vercel (ERR_FAILED on client-side nav).
+      window.location.href = '/';
     } catch {
       setError('Network error. Please try again.');
       setLoading(false);
