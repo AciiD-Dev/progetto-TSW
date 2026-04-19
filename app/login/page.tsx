@@ -45,9 +45,8 @@ export default function LoginPage() {
       }
 
       // Cookie is set by the server (HttpOnly).
-      // Use a hard redirect instead of router.push to avoid RSC
-      // navigation issues on Vercel (ERR_FAILED on client-side nav).
-      window.location.href = '/';
+      // Redirect to /rooms (root / has a Vercel-specific ERR_FAILED).
+      window.location.href = '/rooms';
     } catch {
       setError('Network error. Please try again.');
       setLoading(false);

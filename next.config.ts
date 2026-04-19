@@ -13,6 +13,20 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     '/api/**': ['./homedb.sqlite'],
   },
+
+  // Redirect root to /rooms — the root (dashboard)/page.tsx is a heavy
+  // 'use client' component that causes ERR_FAILED on Vercel due to
+  // localStorage access during SSR. /rooms is stable and fully functional.
+  // Next.js config redirects run BEFORE the proxy middleware so this is safe.
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/rooms',
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
