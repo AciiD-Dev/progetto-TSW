@@ -1,8 +1,0 @@
-{
-  "crons": [
-    {
-      "path": "/api/cron/generate-readings",
-      "schedule": "0 0 * * *"
-    }
-  ]
-}

@@ -3,20 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  horizontalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import SortableMetricCard from '@/components/SortableMetricCard';
 import DeviceCard from '@/components/DeviceCard';
 import { SensorReading, Room, Device } from '@/types';
 
@@ -27,6 +13,20 @@ const TemperatureChart = dynamic(
     loading: () => (
       <div className="bg-surface-container rounded-2xl border border-outline-variant/20 h-[268px] flex items-center justify-center">
         <span className="material-symbols-outlined text-3xl text-on-surface-variant/20 animate-spin">progress_activity</span>
+      </div>
+    ),
+  }
+);
+
+const MetricCardsSection = dynamic(
+  () => import('@/components/MetricCardsSection'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="bg-surface-container rounded-2xl border border-outline-variant/20 h-[120px] animate-pulse" />
+        ))}
       </div>
     ),
   }
@@ -111,20 +111,7 @@ export default function DashboardPage() {
 
   // KeyboardSensor disabled — it generates aria-describedby IDs that
   // mismatch between SSR and client, causing hydration errors.
-  const sensors = useSensors(useSensor(PointerSensor));
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-      setCards((items) => {
-        const oldIndex = items.findIndex((i) => i.id === active.id);
-        const newIndex = items.findIndex((i) => i.id === over.id);
-        const newArray = arrayMove(items, oldIndex, newIndex);
-        localStorage.setItem('homehub-metric-cards', JSON.stringify(newArray.map(c => c.id)));
-        return newArray;
-      });
-    }
-  };
+  // Drag-and-drop logic is now in MetricCardsSection component and rendered client-only.
 
   // Real-time SSE — stream sends { type, data: { activeDevices, avgTemperature, avgHumidity } }
   useEffect(() => {
@@ -203,19 +190,14 @@ export default function DashboardPage() {
       </div>
 
       {/* Metric Cards */}
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={cards.map(c => c.id)} strategy={horizontalListSortingStrategy}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {cards.map(card => {
-              if (card.id === 'temp') return <SortableMetricCard key={card.id} id={card.id} value={avgTemp} {...card.props} />;
-              if (card.id === 'power') return <SortableMetricCard key={card.id} id={card.id} value={devicesOn} {...card.props} />;
-              if (card.id === 'humidity') return <SortableMetricCard key={card.id} id={card.id} value={avgHum} {...card.props} />;
-              if (card.id === 'alerts') return <SortableMetricCard key={card.id} id={card.id} value={activeAlerts} description={activeAlerts > 0 ? "Action required" : "No issues detected"} {...card.props} color={activeAlerts > 0 ? "error" : "tertiary"} />;
-              return null;
-            })}
-          </div>
-        </SortableContext>
-      </DndContext>
+      <MetricCardsSection 
+        cards={cards} 
+        avgTemp={avgTemp} 
+        devicesOn={devicesOn} 
+        avgHum={avgHum} 
+        activeAlerts={activeAlerts}
+        onCardsChange={setCards}
+      />
 
       {/* Bento Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
