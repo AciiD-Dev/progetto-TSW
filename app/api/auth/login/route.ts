@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import getDb from '@/lib/db';
 import { loginSchema, validate } from '@/lib/validation';
-import { verifyPassword, signToken, COOKIE_NAME } from '@/lib/auth';
+import { signToken, COOKIE_NAME } from '@/lib/auth';
+import { verifyPassword } from '@/lib/password';
 
 export async function POST(request: NextRequest) {
   try {
