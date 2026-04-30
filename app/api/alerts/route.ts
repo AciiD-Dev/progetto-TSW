@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import getDb from '@/lib/db';
+import getDb from '@/lib/server/db';
 import { createAlertSchema, validate } from '@/lib/validation';
 
 export const dynamic = 'force-dynamic';

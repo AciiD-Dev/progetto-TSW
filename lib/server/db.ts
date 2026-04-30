@@ -111,7 +111,7 @@ function getDb(): Database.Database {
   const userCount = _db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
   if (userCount.count === 0) {
     // Hash for 'password123'  (bcrypt, rounds=10)
-    const defaultHash = '$2b$10$tZ7ot9UPX8j7jN2vsHyG.uzthvwKdYdFjaf8f51h0jQT3/TdOyXtK';
+    const defaultHash = '$2b$10$A/W73boZyB1fDCmHQwrDueuAPxZNhONwBY4YCIVhncucBswv5ABhe';
     _db.prepare('INSERT INTO users (email, name, password_hash) VALUES (?, ?, ?)')
       .run('admin@home.local', 'Admin', defaultHash);
   }

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import getDb from '@/lib/db';
+import getDb from '@/lib/server/db';
 import { loginSchema, validate } from '@/lib/validation';
-import { signToken, COOKIE_NAME } from '@/lib/auth';
-import { verifyPassword } from '@/lib/password';
+import { signToken, COOKIE_NAME } from '@/lib/server/auth';
+import { verifyPassword } from '@/lib/server/password';
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,7 +16,8 @@ export async function POST(request: NextRequest) {
     const { email, password } = rawBody;
     const db = getDb();
     
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email) as any;
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = db.prepare('SELECT * FROM users WHERE LOWER(email) = ?').get(normalizedEmail) as any;
     if (!user) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }

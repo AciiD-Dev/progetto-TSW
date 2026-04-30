@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useSSEStream } from '@/lib/use-sse-stream';
+import { useSSEStream } from '@/lib/hooks/use-sse-stream';
 
 interface AnalyticsData {
   timestamp: string;

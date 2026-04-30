@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ['192.168.243.189', '192.168.17.189', '127.0.0.1', '172.18.141.246'],
+  // Comma-separated list of extra origins allowed in dev mode.
+  // Example: ALLOWED_DEV_ORIGINS=192.168.1.100,10.0.0.5
+  allowedDevOrigins: process.env.ALLOWED_DEV_ORIGINS
+    ? process.env.ALLOWED_DEV_ORIGINS.split(',').map((o) => o.trim())
+    : [],
 
   // Tell Next.js NOT to bundle better-sqlite3 — it must remain a native
   // Node.js addon loaded at runtime. Without this, Vercel's build will fail

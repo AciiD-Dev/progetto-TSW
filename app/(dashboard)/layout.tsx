@@ -2,9 +2,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import ToastProvider from '@/components/ToastProvider';
-import DashboardNav from '@/components/DashboardNav';
-import DashboardTopBar from '@/components/DashboardTopBar';
+import ToastProvider from '@/components/ui/ToastProvider';
+import DashboardNav from '@/components/dashboard/DashboardNav';
+import DashboardTopBar from '@/components/dashboard/DashboardTopBar';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isMobileOpen,     setIsMobileOpen]     = useState(false);

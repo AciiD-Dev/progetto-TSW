@@ -5,8 +5,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import getDb from '@/lib/db';
-import { dbQueryLogger } from '@/lib/db-query-logger';
+import getDb from '@/lib/server/db';
+import { dbQueryLogger } from '@/lib/server/db-query-logger';
 
 export const dynamic = 'force-dynamic';
 

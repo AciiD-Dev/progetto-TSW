@@ -3,9 +3,9 @@
 
 import React, { use, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import AddDeviceModal from '@/components/AddDeviceModal';
-import DeviceCard from '@/components/DeviceCard';
-import { useToast } from '@/components/ToastProvider';
+import AddDeviceModal from '@/components/devices/AddDeviceModal';
+import DeviceCard from '@/components/devices/DeviceCard';
+import { useToast } from '@/components/ui/ToastProvider';
 import { Room, Device, DeviceType } from '@/types';
 
 interface LiveReading {
@@ -19,9 +19,10 @@ const deviceTypeLabels: Record<string, string> = {
   thermostat: 'Thermostats',
   humidity:   'Humidity',
   blinds:     'Blinds',
+  plug:       'Smart Plugs',
 };
 
-const deviceTypeOrder = ['light', 'thermostat', 'humidity', 'blinds'];
+const deviceTypeOrder = ['light', 'thermostat', 'humidity', 'blinds', 'plug'];
 
 export default function RoomDetailPage({
   params,
@@ -130,26 +131,9 @@ export default function RoomDetailPage({
   };
 
   // Add device
-  const handleAddDevice = async (data: {
-    room_id: number;
-    name: string;
-    type: DeviceType;
-    value: number;
-  }) => {
-    try {
-      const res = await fetch('/api/devices', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error('Failed');
-      const newDevice: Device = await res.json();
-      setDevices((prev) => [...prev, newDevice]);
-      toast.success(`Added ${newDevice.name}`);
-    } catch (err) {
-      console.error('[add device]', err);
-      toast.error('Failed to add device');
-    }
+  const handleAddDevice = (newDevice: Device) => {
+    setDevices((prev) => [...prev, newDevice]);
+    toast.success(`Added ${newDevice.name}`);
   };
 
   const liveValueFor = (deviceId: number) =>

@@ -27,6 +27,21 @@ export default function DashboardTopBar({
   sidebarCollapsed,
 }: DashboardTopBarProps) {
   const pathname = usePathname();
+  const [dynamicNames, setDynamicNames] = React.useState<Record<string, string>>({});
+
+  React.useEffect(() => {
+    // If it's a room detail page, fetch the room name
+    const match = pathname.match(/^\/rooms\/(\d+)$/);
+    if (match) {
+      const id = match[1];
+      fetch(`/api/rooms/${id}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((room) => {
+          if (room) setDynamicNames((prev) => ({ ...prev, [pathname]: room.name }));
+        })
+        .catch(console.error);
+    }
+  }, [pathname]);
 
   const handleLogout = () => {
     // Delete the correct auth cookie (hh_token) and do a hard redirect
@@ -37,7 +52,34 @@ export default function DashboardTopBar({
 
   // Compute breadcrumb
   const segments = pathname.split('/').filter(Boolean);
-  const currentPage = breadcrumbMap[pathname] ?? (segments[segments.length - 1] ?? 'Page');
+  
+  // Build breadcrumb items
+  const breadcrumbItems = [];
+  
+  if (segments.length === 0) {
+    breadcrumbItems.push('Dashboard');
+  } else {
+    // Build path incrementally
+    let currentPath = '';
+    for (let i = 0; i < segments.length; i++) {
+      currentPath += `/${segments[i]}`;
+      
+      // If it's a known static path
+      if (breadcrumbMap[currentPath]) {
+        breadcrumbItems.push(breadcrumbMap[currentPath]);
+      } 
+      // If we fetched a dynamic name for it
+      else if (dynamicNames[currentPath]) {
+        breadcrumbItems.push(dynamicNames[currentPath]);
+      }
+      // Fallback
+      else {
+        // Capitalize segment
+        const name = segments[i].charAt(0).toUpperCase() + segments[i].slice(1);
+        breadcrumbItems.push(name);
+      }
+    }
+  }
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-background/80 backdrop-blur-xl border-b border-outline-variant/20 flex items-center justify-between px-4 gap-4">
@@ -74,10 +116,22 @@ export default function DashboardTopBar({
         </div>
 
         {/* Breadcrumb (desktop) */}
-        <div className="hidden lg:flex items-center gap-1.5 text-sm min-w-0">
-          <span className="text-on-surface-variant/60">HomeHub</span>
-          <span className="text-outline-variant">/</span>
-          <span className="text-on-surface font-medium truncate">{currentPage}</span>
+        <div className="hidden lg:flex items-center text-sm min-w-0 whitespace-nowrap overflow-hidden text-ellipsis">
+          <span className="text-on-surface-variant/60 flex-shrink-0">HomeHub</span>
+          {breadcrumbItems.map((item, index) => (
+            <React.Fragment key={index}>
+              <span className="text-outline-variant mx-1.5 flex-shrink-0">/</span>
+              <span 
+                className={`truncate ${
+                  index === breadcrumbItems.length - 1 
+                    ? 'text-on-surface font-medium' 
+                    : 'text-on-surface-variant/60 hidden sm:inline-block'
+                }`}
+              >
+                {item}
+              </span>
+            </React.Fragment>
+          ))}
         </div>
       </div>
 

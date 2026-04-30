@@ -1,8 +1,9 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 
 const features = [
@@ -13,11 +14,19 @@ const features = [
 ];
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    // Prefetch dashboard for instant navigation
+    router.prefetch('/');
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,8 +53,9 @@ export default function LoginPage() {
         return;
       }
 
-      // Cookie set by server (HttpOnly) — hard redirect to dashboard.
-      window.location.href = '/';
+      // Refresh router cache and navigate to dashboard
+      router.refresh();
+      router.push('/');
     } catch {
       setError('Network error. Please try again.');
       setLoading(false);
@@ -119,7 +129,12 @@ export default function LoginPage() {
             <p className="text-on-surface-variant">Sign in to manage your smart home.</p>
           </div>
 
-          <form className="space-y-6" onSubmit={handleSubmit} noValidate>
+          <div 
+            className="space-y-6" 
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSubmit(e as any);
+            }}
+          >
             <div>
               <label
                 className="block text-[10px] uppercase font-bold text-on-surface-variant/60 tracking-widest mb-2"
@@ -174,12 +189,12 @@ export default function LoginPage() {
             <button
               id="login-submit"
               className="w-full py-4 primary-gradient rounded-xl text-background font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all duration-300 active:scale-[0.98] disabled:opacity-60"
-              type="submit"
-              disabled={loading}
+              onClick={handleSubmit}
+              disabled={loading || !mounted}
             >
-              {loading ? 'Signing in…' : 'Sign In'}
+              {loading ? 'Signing in…' : (!mounted ? 'Loading…' : 'Sign In')}
             </button>
-          </form>
+          </div>
 
           <div className="mt-12 p-6 bg-surface-container rounded-xl border border-outline-variant/20 text-center">
             <p className="text-on-surface-variant text-sm leading-relaxed">

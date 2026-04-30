@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic';
 import { Device, Room, SensorReading } from '@/types';
 
 const TemperatureChart = dynamic(
-  () => import("@/components/TemperatureChart"),
+  () => import("@/components/dashboard/TemperatureChart"),
   {
     ssr: false,
     loading: () => (

@@ -3,11 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import DeviceCard from '@/components/DeviceCard';
+import DeviceCard from '@/components/devices/DeviceCard';
 import { SensorReading, Room, Device } from '@/types';
 
 const TemperatureChart = dynamic(
-  () => import('@/components/TemperatureChart'),
+  () => import('@/components/dashboard/TemperatureChart'),
   {
     ssr: false,
     loading: () => (
@@ -19,7 +19,7 @@ const TemperatureChart = dynamic(
 );
 
 const MetricCardsSection = dynamic(
-  () => import('@/components/MetricCardsSection'),
+  () => import('@/components/dashboard/MetricCardsSection'),
   {
     ssr: false,
     loading: () => (
@@ -196,7 +196,7 @@ export default function DashboardPage() {
         devicesOn={devicesOn} 
         avgHum={avgHum} 
         activeAlerts={activeAlerts}
-        onCardsChange={setCards}
+        onCardsChange={(updated) => setCards(updated as typeof cards)}
       />
 
       {/* Bento Grid Layout */}
