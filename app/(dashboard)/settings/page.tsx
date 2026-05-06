@@ -3,6 +3,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useToast } from '@/components/ui/ToastProvider';
+import Link from 'next/link';
 
 interface Device {
   id: number;
@@ -28,9 +29,9 @@ const settingsSections = [
     color: 'text-primary',
     bg: 'bg-primary/10',
     items: [
-      { label: 'Push Notifications',  description: 'Receive alerts for device events',     coming: false, enabled: true  },
-      { label: 'Email Alerts',         description: 'Send critical alerts via email',        coming: true,  enabled: false },
-      { label: 'Temperature Alerts',   description: 'Alert when temp exceeds threshold',     coming: true,  enabled: false },
+      { label: 'Push Notifications', description: 'Receive alerts for device events', coming: false, enabled: true },
+      { label: 'Email Alerts', description: 'Send critical alerts via email', coming: true, enabled: false },
+      { label: 'Temperature Alerts', description: 'Alert when temp exceeds threshold', coming: true, enabled: false },
     ],
   },
   {
@@ -39,9 +40,9 @@ const settingsSections = [
     color: 'text-secondary',
     bg: 'bg-secondary/10',
     items: [
-      { label: 'Google Home',   description: 'Connect with Google Home ecosystem', coming: true, enabled: false },
-      { label: 'Amazon Alexa',  description: 'Voice control via Amazon Alexa',     coming: true, enabled: false },
-      { label: 'Apple HomeKit', description: 'Integrate with Apple HomeKit',        coming: true, enabled: false },
+      { label: 'Google Home', description: 'Connect with Google Home ecosystem', coming: true, enabled: false },
+      { label: 'Amazon Alexa', description: 'Voice control via Amazon Alexa', coming: true, enabled: false },
+      { label: 'Apple HomeKit', description: 'Integrate with Apple HomeKit', coming: true, enabled: false },
     ],
   },
   {
@@ -50,9 +51,9 @@ const settingsSections = [
     color: 'text-tertiary',
     bg: 'bg-tertiary/10',
     items: [
-      { label: 'Dark Mode',    description: 'Always use dark theme',       coming: false, enabled: true  },
-      { label: 'Compact View', description: 'Reduce spacing in dashboard', coming: true,  enabled: false },
-      { label: 'Animations',   description: 'Enable UI animations',        coming: false, enabled: true  },
+      { label: 'Dark Mode', description: 'Always use dark theme', coming: false, enabled: true },
+      { label: 'Compact View', description: 'Reduce spacing in dashboard', coming: true, enabled: false },
+      { label: 'Animations', description: 'Enable UI animations', coming: false, enabled: true },
     ],
   },
   {
@@ -62,7 +63,7 @@ const settingsSections = [
     bg: 'bg-error/10',
     items: [
       { label: 'Two-Factor Auth', description: 'Enable 2FA for enhanced security', coming: true, enabled: false },
-      { label: 'Change Password', description: 'Update your account password',   coming: false, enabled: false },
+      { label: 'Change Password', description: 'Update your account password', coming: false, enabled: false },
     ],
   },
 ];
@@ -71,7 +72,7 @@ export default function SettingsPage() {
   const [alerts, setAlerts] = useState<AlertRule[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Form state
   const [deviceId, setDeviceId] = useState('');
   const [ruleType, setRuleType] = useState<'gt' | 'lt'>('gt');
@@ -173,8 +174,8 @@ export default function SettingsPage() {
           <form onSubmit={handleAddAlert} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
             <div className="lg:col-span-1">
               <label className="text-[10px] uppercase font-bold text-on-surface-variant/60 block mb-1">Device</label>
-              <select 
-                value={deviceId} 
+              <select
+                value={deviceId}
                 onChange={e => setDeviceId(e.target.value)}
                 className="w-full bg-surface-container-highest border border-outline-variant/30 rounded-xl px-3 py-2.5 text-sm outline-none text-on-surface focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all"
               >
@@ -186,8 +187,8 @@ export default function SettingsPage() {
             </div>
             <div className="lg:col-span-1">
               <label className="text-[10px] uppercase font-bold text-on-surface-variant/60 block mb-1">Condition</label>
-              <select 
-                value={ruleType} 
+              <select
+                value={ruleType}
                 onChange={e => setRuleType(e.target.value as 'gt' | 'lt')}
                 className="w-full bg-surface-container-highest border border-outline-variant/30 rounded-xl px-3 py-2.5 text-sm outline-none text-on-surface focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all"
               >
@@ -197,8 +198,8 @@ export default function SettingsPage() {
             </div>
             <div className="lg:col-span-1">
               <label className="text-[10px] uppercase font-bold text-on-surface-variant/60 block mb-1">Threshold</label>
-              <input 
-                type="number" 
+              <input
+                type="number"
                 step="0.1"
                 placeholder="e.g. 25.5"
                 value={threshold}
@@ -208,8 +209,8 @@ export default function SettingsPage() {
             </div>
             <div className="lg:col-span-1">
               <label className="text-[10px] uppercase font-bold text-on-surface-variant/60 block mb-1">Message</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="Alert text"
                 value={message}
                 onChange={e => setMessage(e.target.value)}
@@ -235,9 +236,8 @@ export default function SettingsPage() {
             </div>
           ) : (
             alerts.map(alert => (
-              <div key={alert.id} className={`flex items-center justify-between p-4 rounded-xl border transition-colors ${
-                alert.is_active ? 'bg-surface-container-high border-outline-variant/15' : 'bg-surface-container-low border-outline-variant/5 opacity-60'
-              }`}>
+              <div key={alert.id} className={`flex items-center justify-between p-4 rounded-xl border transition-colors ${alert.is_active ? 'bg-surface-container-high border-outline-variant/15' : 'bg-surface-container-low border-outline-variant/5 opacity-60'
+                }`}>
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">
                     <span className={`w-2 h-2 rounded-full ${alert.triggered_at && alert.is_active === 1 ? 'bg-error animate-pulse shadow-[0_0_8px_rgba(255,82,82,0.8)]' : 'bg-tertiary'}`}></span>
@@ -256,13 +256,11 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-4">
                   <button
                     onClick={() => handleToggleAlert(alert.id, alert.is_active)}
-                    className={`relative w-10 h-5 rounded-full transition-all duration-300 ${
-                      alert.is_active === 1 ? 'bg-primary' : 'bg-surface-container-highest'
-                    }`}
+                    className={`relative w-10 h-5 rounded-full transition-all duration-300 ${alert.is_active === 1 ? 'bg-primary' : 'bg-surface-container-highest'
+                      }`}
                   >
-                    <span className={`absolute top-1 w-3 h-3 rounded-full bg-white shadow transition-all duration-300 ${
-                      alert.is_active === 1 ? 'left-6' : 'left-1'
-                    }`} />
+                    <span className={`absolute top-1 w-3 h-3 rounded-full bg-white shadow transition-all duration-300 ${alert.is_active === 1 ? 'left-6' : 'left-1'
+                      }`} />
                   </button>
                   <button
                     onClick={() => handleDeleteAlert(alert.id)}
@@ -278,6 +276,22 @@ export default function SettingsPage() {
       </section>
 
       {/* General Settings Sections */}
+      <section className="bg-surface-container rounded-2xl p-5 border border-outline-variant/20">
+        <h2 className="headline-font text-xl font-bold text-on-surface mb-6 flex items-center gap-2">
+          <span className="material-symbols-outlined text-secondary">bolt</span>
+          Quick Actions
+        </h2>
+        <div className="space-y-4">
+          <Link href="/settings/quick-actions" className="flex items-center justify-between bg-surface-container-high rounded-xl p-4 border border-outline-variant/10 hover:border-primary/50 transition-all">
+            <div>
+              <p className="font-medium text-on-surface">Configure Modes</p>
+              <p className="text-sm text-on-surface-variant/70">Customize Night Mode, Away Mode, and Eco Mode</p>
+            </div>
+            <span className="material-symbols-outlined text-on-surface-variant">arrow_forward_ios</span>
+          </Link>
+        </div>
+      </section>
+
       {settingsSections.map((section) => (
         <section key={section.title} className="bg-surface-container rounded-2xl p-5 border border-outline-variant/20">
           <h2 className="headline-font text-xl font-bold text-on-surface mb-6 flex items-center gap-2">
@@ -296,13 +310,11 @@ export default function SettingsPage() {
                     <span className="px-3 py-1 text-xs font-semibold rounded-full bg-primary/10 text-primary">Soon</span>
                   ) : (
                     <button
-                      className={`relative w-10 h-5 rounded-full transition-all duration-300 ${
-                        item.enabled ? 'bg-primary' : 'bg-surface-container-highest'
-                      }`}
+                      className={`relative w-10 h-5 rounded-full transition-all duration-300 ${item.enabled ? 'bg-primary' : 'bg-surface-container-highest'
+                        }`}
                     >
-                      <span className={`absolute top-1 w-3 h-3 rounded-full bg-white shadow transition-all duration-300 ${
-                        item.enabled ? 'left-6' : 'left-1'
-                      }`} />
+                      <span className={`absolute top-1 w-3 h-3 rounded-full bg-white shadow transition-all duration-300 ${item.enabled ? 'left-6' : 'left-1'
+                        }`} />
                     </button>
                   )}
                 </div>

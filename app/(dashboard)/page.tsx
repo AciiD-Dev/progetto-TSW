@@ -33,10 +33,10 @@ const MetricCardsSection = dynamic(
 );
 
 const QUICK_ACTIONS = [
-  { label: 'All Lights Off',  icon: 'lightbulb',      color: 'text-warning',   bg: 'bg-warning/10',   border: 'border-warning/20'   },
-  { label: 'Night Mode',      icon: 'bedtime',         color: 'text-secondary', bg: 'bg-secondary/10', border: 'border-secondary/20' },
-  { label: 'Away Mode',       icon: 'directions_walk', color: 'text-primary',   bg: 'bg-primary/10',   border: 'border-primary/20'   },
-  { label: 'Eco Mode',        icon: 'eco',             color: 'text-tertiary',  bg: 'bg-tertiary/10',  border: 'border-tertiary/20'  },
+  { id: 'all_lights_off', label: 'All Lights Off',  icon: 'lightbulb',      color: 'text-warning',   bg: 'bg-warning/10',   border: 'border-warning/20'   },
+  { id: 'night_mode',     label: 'Night Mode',      icon: 'bedtime',         color: 'text-secondary', bg: 'bg-secondary/10', border: 'border-secondary/20' },
+  { id: 'away_mode',      label: 'Away Mode',       icon: 'directions_walk', color: 'text-primary',   bg: 'bg-primary/10',   border: 'border-primary/20'   },
+  { id: 'eco_mode',       label: 'Eco Mode',        icon: 'eco',             color: 'text-tertiary',  bg: 'bg-tertiary/10',  border: 'border-tertiary/20'  },
 ];
 
 function getGreeting() {
@@ -164,6 +164,69 @@ export default function DashboardPage() {
     }
   };
 
+  const handleQuickAction = async (actionId: string) => {
+    let ops: { device_id: number; action: string; value?: number }[] = [];
+
+    // Load config from localStorage or use defaults
+    const DEFAULT_CONFIG = {
+      night_mode: { thermostatTemp: 19, blindsClosed: true, turnOffLights: true },
+      away_mode: { thermostatTemp: 16, blindsClosed: true, turnOffLights: true, turnOffPlugs: true },
+      eco_mode: { thermostatTemp: 20 }
+    };
+    
+    let config = DEFAULT_CONFIG;
+    try {
+      const saved = localStorage.getItem('homehub-quick-actions');
+      if (saved) config = { ...DEFAULT_CONFIG, ...JSON.parse(saved) };
+    } catch {}
+
+    if (actionId === 'all_lights_off') {
+      ops = devices
+        .filter(d => d.type === 'light' && d.status === 1)
+        .map(d => ({ device_id: d.id, action: 'turn_off' }));
+    } else if (actionId === 'night_mode') {
+      const { thermostatTemp, blindsClosed, turnOffLights } = config.night_mode;
+      const lightOps = turnOffLights ? devices.filter(d => d.type === 'light' && d.status === 1).map(d => ({ device_id: d.id, action: 'turn_off' })) : [];
+      const blindOps = blindsClosed ? devices.filter(d => d.type === 'blinds').map(d => ({ device_id: d.id, action: 'set_value', value: 0 })) : [];
+      const thermOps = devices.filter(d => d.type === 'thermostat').map(d => ({ device_id: d.id, action: 'set_value', value: thermostatTemp }));
+      ops = [...lightOps, ...blindOps, ...thermOps];
+    } else if (actionId === 'away_mode') {
+      const { thermostatTemp, blindsClosed, turnOffLights, turnOffPlugs } = config.away_mode;
+      const lightOps = turnOffLights ? devices.filter(d => d.type === 'light' && d.status === 1).map(d => ({ device_id: d.id, action: 'turn_off' })) : [];
+      const plugOps = turnOffPlugs ? devices.filter(d => d.type === 'plug' && d.status === 1).map(d => ({ device_id: d.id, action: 'turn_off' })) : [];
+      const blindOps = blindsClosed ? devices.filter(d => d.type === 'blinds').map(d => ({ device_id: d.id, action: 'set_value', value: 0 })) : [];
+      const thermOps = devices.filter(d => d.type === 'thermostat').map(d => ({ device_id: d.id, action: 'set_value', value: thermostatTemp }));
+      ops = [...lightOps, ...plugOps, ...blindOps, ...thermOps];
+    } else if (actionId === 'eco_mode') {
+      const { thermostatTemp } = config.eco_mode;
+      const thermOps = devices.filter(d => d.type === 'thermostat').map(d => ({ device_id: d.id, action: 'set_value', value: thermostatTemp }));
+      ops = [...thermOps];
+    }
+
+    if (ops.length === 0) return;
+
+    // Optimistic update
+    setDevices(prev => prev.map(d => {
+      const op = ops.find(o => o.device_id === d.id);
+      if (!op) return d;
+      if (op.action === 'turn_off') return { ...d, status: 0 };
+      if (op.action === 'turn_on') return { ...d, status: 1 };
+      if (op.action === 'set_value' && op.value !== undefined) return { ...d, value: op.value };
+      return d;
+    }));
+
+    try {
+      await fetch('/api/devices/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ operations: ops })
+      });
+    } catch (e) {
+      console.error('[QuickAction Error]', e);
+      // Revert strategy can be added here or rely on SSE
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in-up">
       {/* Header */}
@@ -181,7 +244,8 @@ export default function DashboardPage() {
         {QUICK_ACTIONS.map((action) => (
           <button
             key={action.label}
-            className={`flex flex-col items-center justify-center p-4 rounded-xl border ${action.border} ${action.bg} text-on-surface-variant hover:text-on-surface hover:border-outline-variant/60 transition-all`}
+            onClick={() => handleQuickAction(action.id)}
+            className={`flex flex-col items-center justify-center p-4 rounded-xl border ${action.border} ${action.bg} text-on-surface-variant hover:text-on-surface hover:border-outline-variant/60 transition-all cursor-pointer`}
           >
             <span className={`material-symbols-outlined text-2xl ${action.color}`}>{action.icon}</span>
             <span className="text-xs font-medium mt-2">{action.label}</span>
