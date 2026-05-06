@@ -1,0 +1,66 @@
+import { NextRequest, NextResponse } from 'next/server';
+import getDb from '@/lib/server/db';
+import { Device } from '@/types';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: NextRequest) {
+  // Protect with cron secret if in production
+  if (process.env.NODE_ENV === 'production') {
+    const authHeader = request.headers.get('authorization');
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+  }
+
+  try {
+    const db = getDb();
+    const devices = db.prepare('SELECT * FROM devices WHERE type IN ("thermostat", "humidity")').all() as Device[];
+
+    const now = new Date().toISOString();
+    let insertedCount = 0;
+
+    const insertStmt = db.prepare('INSERT INTO sensor_readings (device_id, value, unit, recorded_at) VALUES (?, ?, ?, ?)');
+    const updateDeviceStmt = db.prepare('UPDATE devices SET value = ? WHERE id = ?');
+
+    const transaction = db.transaction(() => {
+      for (const device of devices) {
+        // Generate a new reading based on the last value with a simple drift logic
+        const drift = (Math.random() - 0.5) * 1.5; // -0.75 to +0.75
+        let newValue = device.value + drift;
+        
+        // Clamp bounds
+        if (device.type === 'thermostat') {
+           newValue = Math.max(16, Math.min(30, newValue));
+        } else if (device.type === 'humidity') {
+           newValue = Math.max(30, Math.min(70, newValue));
+        }
+        
+        newValue = parseFloat(newValue.toFixed(1));
+        const unit = device.type === 'thermostat' ? '°C' : '%';
+
+        insertStmt.run(device.id, newValue, unit, now);
+        updateDeviceStmt.run(newValue, device.id);
+        insertedCount++;
+
+        // Check alerts
+        const activeAlerts = db.prepare('SELECT * FROM alerts WHERE device_id = ? AND is_active = 1').all(device.id) as any[];
+        for (const alert of activeAlerts) {
+          let triggered = false;
+          if (alert.rule_type === 'gt' && newValue > alert.threshold) triggered = true;
+          if (alert.rule_type === 'lt' && newValue < alert.threshold) triggered = true;
+          if (triggered) {
+            db.prepare('UPDATE alerts SET triggered_at = ? WHERE id = ?').run(now, alert.id);
+          }
+        }
+      }
+    });
+
+    transaction();
+
+    return NextResponse.json({ success: true, count: insertedCount });
+  } catch (err) {
+    console.error('[GET /api/cron/generate-readings]', err);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
