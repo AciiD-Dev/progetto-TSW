@@ -1,0 +1,16 @@
+{
+  "name": "HomeHub AI",
+  "short_name": "HomeHub",
+  "description": "Smart Home Management PWA",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0e14",
+  "theme_color": "#0b0e14",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png"
+    }
+  ]
+}
