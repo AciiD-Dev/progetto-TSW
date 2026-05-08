@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import AuthProvider from "@/components/providers/AuthProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -38,7 +39,7 @@ export default function RootLayout({
         />
       </head>
       <body suppressHydrationWarning>
-        {children}
+        <AuthProvider>{children}</AuthProvider>
         <Script
           id="theme-script"
           strategy="beforeInteractive"

@@ -17,6 +17,11 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     '/api/**': ['./homedb.sqlite'],
   },
+
+  // Move the Next.js dev indicator out of the bottom-left corner
+  devIndicators: {
+    position: 'bottom-right',
+  },
 };
 
 export default nextConfig;

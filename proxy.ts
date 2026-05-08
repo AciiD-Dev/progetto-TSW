@@ -1,13 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken, COOKIE_NAME } from '@/lib/server/auth';
+/**
+ * proxy.ts — Next.js 16 "Proxy" (formerly middleware)
+ *
+ * Delegates authentication to Auth.js v5.
+ * The `auth` function reads the session from the `authjs.session-token`
+ * cookie (JWT strategy), so we no longer need the old hh_token system.
+ */
+
+import { auth } from '@/auth';
+import { NextResponse } from 'next/server';
 
 const PUBLIC_PATHS = [
   '/login',
+  '/register',
   '/favicon.ico',
   '/sw.js',
   '/manifest.json',
   '/robots.txt',
   '/sitemap.xml',
+  '/pricing',
 ];
 
 const PUBLIC_PREFIXES = [
@@ -18,8 +28,8 @@ const PUBLIC_PREFIXES = [
   '/images/',
 ];
 
-export async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+export const proxy = auth((req) => {
+  const { pathname } = req.nextUrl;
 
   // Allow public exact paths
   if (PUBLIC_PATHS.includes(pathname)) {
@@ -31,37 +41,16 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const session = request.cookies.get(COOKIE_NAME);
-
-  if (!session) {
-    const loginUrl = new URL('/login', request.url);
+  // Check Auth.js session (injected by the auth() wrapper)
+  if (!req.auth) {
+    const loginUrl = new URL('/login', req.url);
     return NextResponse.redirect(loginUrl);
   }
 
-  const payload = await verifyToken(session.value);
-
-  if (!payload) {
-    const loginUrl = new URL('/login', request.url);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  const response = NextResponse.next();
-  response.headers.set('X-User-Id', String(payload.userId));
-  response.headers.set('X-User-Email', payload.email);
-  return response;
-}
+  return NextResponse.next();
+});
 
 export const config = {
-  /*
-   * Next.js 16 official pattern: use 'missing' to skip the proxy for
-   * prefetch requests entirely (before the function body runs).
-   *
-   * IMPORTANT: Next.js STRIPS RSC/Flight headers (rsc, next-router-state-tree,
-   * next-router-prefetch) before they reach the proxy function, so you CANNOT
-   * detect RSC requests inside the function — use the matcher config instead.
-   *
-   * Source: proxy.md docs, "RSC requests and rewrites" + "Negative matching"
-   */
   matcher: [
     // Non-prefetch requests — proxy runs normally
     {

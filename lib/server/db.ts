@@ -110,8 +110,8 @@ function getDb(): Database.Database {
   // ── Seed default admin user ─────────────────────────────────────────────
   const userCount = _db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
   if (userCount.count === 0) {
-    // Hash for 'password123'  (bcrypt, rounds=10)
-    const defaultHash = '$2b$10$A/W73boZyB1fDCmHQwrDueuAPxZNhONwBY4YCIVhncucBswv5ABhe';
+    // Hash for 'password123'  (bcrypt native, rounds=10)
+    const defaultHash = '$2b$10$9id7CE.DrcXr5ezBG1FZJOEg3iVmQ.ZhhIKodeaOjDCP./KqC4jaS';
     _db.prepare('INSERT INTO users (email, name, password_hash) VALUES (?, ?, ?)')
       .run('admin@home.local', 'Admin', defaultHash);
   }

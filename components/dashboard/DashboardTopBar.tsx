@@ -3,6 +3,7 @@
 
 import React from 'react';
 import { usePathname } from 'next/navigation';
+import { signOut, useSession } from 'next-auth/react';
 
 const breadcrumbMap: Record<string, string> = {
   '/':         'Dashboard',
@@ -27,6 +28,7 @@ export default function DashboardTopBar({
   sidebarCollapsed,
 }: DashboardTopBarProps) {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const [dynamicNames, setDynamicNames] = React.useState<Record<string, string>>({});
 
   React.useEffect(() => {
@@ -44,10 +46,7 @@ export default function DashboardTopBar({
   }, [pathname]);
 
   const handleLogout = () => {
-    // Delete the correct auth cookie (hh_token) and do a hard redirect
-    // to flush all client state cleanly.
-    document.cookie = 'hh_token=; path=/; max-age=0; SameSite=Lax';
-    window.location.href = '/login';
+    signOut({ callbackUrl: '/login' });
   };
 
   // Compute breadcrumb
@@ -155,7 +154,7 @@ export default function DashboardTopBar({
           <div className="w-7 h-7 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center flex-shrink-0">
             <span className="material-symbols-outlined text-primary text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
           </div>
-          <span className="hidden sm:block text-xs font-medium text-on-surface-variant">admin</span>
+          <span className="hidden sm:block text-xs font-medium text-on-surface-variant">{session?.user?.name || session?.user?.email || 'User'}</span>
           <button
             onClick={handleLogout}
             className="flex items-center justify-center w-7 h-7 rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 transition-all"

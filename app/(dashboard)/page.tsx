@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import DeviceCard from '@/components/devices/DeviceCard';
@@ -47,6 +48,7 @@ function getGreeting() {
 }
 
 export default function DashboardPage() {
+  const { data: session } = useSession();
   const [readings,    setReadings]    = useState<SensorReading[]>([]);
   const [rooms,       setRooms]       = useState<Room[]>([]);
   const [devices,     setDevices]     = useState<Device[]>([]);
@@ -232,7 +234,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div>
         <h1 className="headline-font text-2xl font-bold text-on-surface">
-          {getGreeting()}, Daniele
+          {getGreeting()}, {session?.user?.name?.split(' ')[0] || 'User'}
         </h1>
         <p className="text-sm text-on-surface-variant mt-0.5">
           Your home at a glance · Live updates every 5s
