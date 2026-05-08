@@ -3,6 +3,8 @@ import getDb from '@/lib/server/db';
 import { Device } from '@/types';
 import { dbQueryLogger } from '@/lib/server/db-query-logger';
 
+import { auth } from '@/auth';
+
 export const dynamic = 'force-dynamic';
 
 export async function PATCH(
@@ -10,18 +12,22 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const userId = Number(session.user.id);
+
     const { id } = await params;
     const body = await request.json();
     const db = getDb();
     const startTime = Date.now();
 
     // Validazione: verifica che il dispositivo esista
-    const selectQuery = 'SELECT * FROM devices WHERE id = ?';
+    const selectQuery = 'SELECT * FROM devices WHERE id = ? AND user_id = ?';
     const existing = db
       .prepare(selectQuery)
-      .get(Number(id)) as Device | undefined;
+      .get(Number(id), userId) as Device | undefined;
 
-    dbQueryLogger.log(selectQuery, [Number(id)], Date.now() - startTime, 1, 'SELECT');
+    dbQueryLogger.log(selectQuery, [Number(id), userId], Date.now() - startTime, 1, 'SELECT');
 
     if (!existing) {
       return NextResponse.json({ error: 'Device not found' }, { status: 404 });
@@ -40,16 +46,16 @@ export async function PATCH(
     }
 
     const updateStartTime = Date.now();
-    const updateQuery = 'UPDATE devices SET status = ?, value = ? WHERE id = ?';
-    db.prepare(updateQuery).run(newStatus, newValue, Number(id));
-    dbQueryLogger.log(updateQuery, [newStatus, newValue, Number(id)], Date.now() - updateStartTime, 1, 'UPDATE');
+    const updateQuery = 'UPDATE devices SET status = ?, value = ? WHERE id = ? AND user_id = ?';
+    db.prepare(updateQuery).run(newStatus, newValue, Number(id), userId);
+    dbQueryLogger.log(updateQuery, [newStatus, newValue, Number(id), userId], Date.now() - updateStartTime, 1, 'UPDATE');
 
-    const selectUpdatedQuery = 'SELECT * FROM devices WHERE id = ?';
+    const selectUpdatedQuery = 'SELECT * FROM devices WHERE id = ? AND user_id = ?';
     const updated = db
       .prepare(selectUpdatedQuery)
-      .get(Number(id)) as Device;
+      .get(Number(id), userId) as Device;
 
-    dbQueryLogger.log(selectUpdatedQuery, [Number(id)], Date.now() - updateStartTime, 1, 'SELECT');
+    dbQueryLogger.log(selectUpdatedQuery, [Number(id), userId], Date.now() - updateStartTime, 1, 'SELECT');
 
     return NextResponse.json(updated);
   } catch (err) {
@@ -64,14 +70,18 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const userId = Number(session.user.id);
+
     const { id } = await params;
     const db = getDb();
     const startTime = Date.now();
 
     // Verifica che il dispositivo esista
-    const selectQuery = 'SELECT * FROM devices WHERE id = ?';
-    const existing = db.prepare(selectQuery).get(Number(id)) as Device | undefined;
-    dbQueryLogger.log(selectQuery, [Number(id)], Date.now() - startTime, 1, 'SELECT');
+    const selectQuery = 'SELECT * FROM devices WHERE id = ? AND user_id = ?';
+    const existing = db.prepare(selectQuery).get(Number(id), userId) as Device | undefined;
+    dbQueryLogger.log(selectQuery, [Number(id), userId], Date.now() - startTime, 1, 'SELECT');
 
     if (!existing) {
       return NextResponse.json({ error: 'Device not found' }, { status: 404 });

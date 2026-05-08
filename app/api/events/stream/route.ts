@@ -6,10 +6,15 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import getDb from '@/lib/server/db';
+import { auth } from '@/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) return new NextResponse('Unauthorized', { status: 401 });
+  const userId = Number(session.user.id);
+
   // Crea uno stream di risposta
   const encoder = new TextEncoder();
 
@@ -29,24 +34,24 @@ export async function GET(request: NextRequest) {
           try {
             const db = getDb();
 
-            // Carica i dati attuali
+            // Carica i dati attuali filtrati per utente
             const devices = db
-              .prepare('SELECT COUNT(*) as count FROM devices WHERE status = 1')
-              .get() as { count: number };
+              .prepare('SELECT COUNT(*) as count FROM devices WHERE status = 1 AND user_id = ?')
+              .get(userId) as { count: number };
 
             const avgTemp = db
               .prepare(
                 `SELECT AVG(value) as avg_temp FROM devices 
-                 WHERE type = 'thermostat' AND status = 1`
+                 WHERE type = 'thermostat' AND status = 1 AND user_id = ?`
               )
-              .get() as { avg_temp: number | null };
+              .get(userId) as { avg_temp: number | null };
 
             const avgHumidity = db
               .prepare(
                 `SELECT AVG(value) as avg_humidity FROM devices 
-                 WHERE type = 'humidity' AND status = 1`
+                 WHERE type = 'humidity' AND status = 1 AND user_id = ?`
               )
-              .get() as { avg_humidity: number | null };
+              .get(userId) as { avg_humidity: number | null };
 
             messageCount++;
 

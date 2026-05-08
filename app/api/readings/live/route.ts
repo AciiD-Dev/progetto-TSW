@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import getDb from '@/lib/server/db';
+import { auth } from '@/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,12 +12,16 @@ interface LiveReading {
 
 export async function GET() {
   try {
+    const session = await auth();
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const userId = Number(session.user.id);
+
     const db = getDb();
 
-    // Get all thermostat and humidity devices with their latest reading
+    // Get all thermostat and humidity devices for the user
     const devices = db
-      .prepare(`SELECT * FROM devices WHERE type IN ('thermostat', 'humidity')`)
-      .all() as Array<{ id: number; type: string; value: number }>;
+      .prepare(`SELECT * FROM devices WHERE type IN ('thermostat', 'humidity') AND user_id = ?`)
+      .all(userId) as Array<{ id: number; type: string; value: number }>;
 
     const results: LiveReading[] = devices.map((dev) => {
       // Get the latest reading for this device

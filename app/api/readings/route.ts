@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import getDb from '@/lib/server/db';
 import { SensorReading, Device } from '@/types';
 import { createReadingSchema, validate } from '@/lib/validation';
+import { auth } from '@/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,18 @@ export async function GET(request: NextRequest) {
     const hours = range === '7d' ? 7 * 24 : range === '30d' ? 30 * 24 : 24;
     const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
 
+    const session = await auth();
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const userId = Number(session.user.id);
+
     const db = getDb();
+    
+    // Check if the device belongs to the user
+    const device = db.prepare('SELECT * FROM devices WHERE id = ? AND user_id = ?').get(Number(deviceId), userId);
+    if (!device) {
+      return NextResponse.json({ error: 'Device not found or unauthorized' }, { status: 404 });
+    }
+
     const readings = db
       .prepare(
         `SELECT * FROM sensor_readings
@@ -43,14 +55,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.errors[0].message }, { status: 400 });
     }
 
+    const session = await auth();
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const userId = Number(session.user.id);
+
     const { device_id, value, unit } = rawBody;
 
     const db = getDb();
     
-    // Check if device exists
-    const device = db.prepare('SELECT * FROM devices WHERE id = ?').get(device_id) as Device | undefined;
+    // Check if device exists and belongs to the user
+    const device = db.prepare('SELECT * FROM devices WHERE id = ? AND user_id = ?').get(device_id, userId) as Device | undefined;
     if (!device) {
-      return NextResponse.json({ error: 'Device not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Device not found or unauthorized' }, { status: 404 });
     }
 
     const recordedAt = new Date().toISOString();

@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import getDb from '@/lib/server/db';
 import { dbQueryLogger } from '@/lib/server/db-query-logger';
+import { auth } from '@/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,10 @@ interface BatchOperation {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const userId = Number(session.user.id);
+
     const body = await request.json();
     const { operations } = body as { operations: BatchOperation[] };
 
@@ -45,9 +50,9 @@ export async function POST(request: NextRequest) {
     const transaction = db.transaction(() => {
       for (const op of operations) {
         try {
-          // Verifica che il dispositivo esista
-          const selectQuery = 'SELECT * FROM devices WHERE id = ?';
-          const device = db.prepare(selectQuery).get(op.device_id);
+          // Verifica che il dispositivo esista e appartenga all'utente
+          const selectQuery = 'SELECT * FROM devices WHERE id = ? AND user_id = ?';
+          const device = db.prepare(selectQuery).get(op.device_id, userId);
 
           if (!device) {
             errors.push({
@@ -79,8 +84,8 @@ export async function POST(request: NextRequest) {
           }
 
           // Aggiorna il dispositivo
-          const updateQuery = 'UPDATE devices SET status = ?, value = ? WHERE id = ?';
-          db.prepare(updateQuery).run(newStatus, newValue, op.device_id);
+          const updateQuery = 'UPDATE devices SET status = ?, value = ? WHERE id = ? AND user_id = ?';
+          db.prepare(updateQuery).run(newStatus, newValue, op.device_id, userId);
 
           results.push({
             device_id: op.device_id,

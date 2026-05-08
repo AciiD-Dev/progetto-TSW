@@ -63,14 +63,16 @@ function getDb(): Database.Database {
     );
 
     CREATE TABLE IF NOT EXISTS rooms (
-      id   INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT    NOT NULL,
-      icon TEXT    NOT NULL
+      id      INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name    TEXT    NOT NULL,
+      icon    TEXT    NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS devices (
       id      INTEGER PRIMARY KEY AUTOINCREMENT,
-      room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      room_id INTEGER REFERENCES rooms(id) ON DELETE CASCADE,
       name    TEXT    NOT NULL,
       type    TEXT    NOT NULL,
       status  INTEGER NOT NULL DEFAULT 0,
@@ -87,6 +89,7 @@ function getDb(): Database.Database {
 
     CREATE TABLE IF NOT EXISTS alerts (
       id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       device_id    INTEGER NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
       rule_type    TEXT    NOT NULL CHECK(rule_type IN ('gt', 'lt')),
       threshold    REAL    NOT NULL,
@@ -98,6 +101,7 @@ function getDb(): Database.Database {
 
     CREATE TABLE IF NOT EXISTS sequences (
       id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       name        TEXT NOT NULL,
       description TEXT,
       nodes       TEXT NOT NULL,
@@ -120,29 +124,31 @@ function getDb(): Database.Database {
   const roomCount = _db.prepare('SELECT COUNT(*) as count FROM rooms').get() as { count: number };
   if (roomCount.count === 0) {
     _db.transaction(() => {
+      const adminUserId = 1; // Assuming the first user is the admin
+      
       // Rooms
-      const r1 = _db.prepare('INSERT INTO rooms (name, icon) VALUES (?, ?)').run('Living Room',  'chair');
-      const r2 = _db.prepare('INSERT INTO rooms (name, icon) VALUES (?, ?)').run('Bedroom',      'bed');
-      const r3 = _db.prepare('INSERT INTO rooms (name, icon) VALUES (?, ?)').run('Kitchen',      'kitchen');
-      const r4 = _db.prepare('INSERT INTO rooms (name, icon) VALUES (?, ?)').run('Office',       'computer');
+      const r1 = _db.prepare('INSERT INTO rooms (user_id, name, icon) VALUES (?, ?, ?)').run(adminUserId, 'Living Room',  'chair');
+      const r2 = _db.prepare('INSERT INTO rooms (user_id, name, icon) VALUES (?, ?, ?)').run(adminUserId, 'Bedroom',      'bed');
+      const r3 = _db.prepare('INSERT INTO rooms (user_id, name, icon) VALUES (?, ?, ?)').run(adminUserId, 'Kitchen',      'kitchen');
+      const r4 = _db.prepare('INSERT INTO rooms (user_id, name, icon) VALUES (?, ?, ?)').run(adminUserId, 'Office',       'computer');
 
       // Living room devices
-      const d1 = _db.prepare('INSERT INTO devices (room_id, name, type, status, value) VALUES (?, ?, ?, ?, ?)').run(r1.lastInsertRowid, 'Ceiling Light',   'light',      1, 80);
-      const d2 = _db.prepare('INSERT INTO devices (room_id, name, type, status, value) VALUES (?, ?, ?, ?, ?)').run(r1.lastInsertRowid, 'Smart Thermostat', 'thermostat', 1, 21.5);
-      const d3 = _db.prepare('INSERT INTO devices (room_id, name, type, status, value) VALUES (?, ?, ?, ?, ?)').run(r1.lastInsertRowid, 'Humidity Sensor',  'humidity',   1, 52);
+      const d1 = _db.prepare('INSERT INTO devices (user_id, room_id, name, type, status, value) VALUES (?, ?, ?, ?, ?, ?)').run(adminUserId, r1.lastInsertRowid, 'Ceiling Light',   'light',      1, 80);
+      const d2 = _db.prepare('INSERT INTO devices (user_id, room_id, name, type, status, value) VALUES (?, ?, ?, ?, ?, ?)').run(adminUserId, r1.lastInsertRowid, 'Smart Thermostat', 'thermostat', 1, 21.5);
+      const d3 = _db.prepare('INSERT INTO devices (user_id, room_id, name, type, status, value) VALUES (?, ?, ?, ?, ?, ?)').run(adminUserId, r1.lastInsertRowid, 'Humidity Sensor',  'humidity',   1, 52);
 
       // Bedroom devices
-      const d4 = _db.prepare('INSERT INTO devices (room_id, name, type, status, value) VALUES (?, ?, ?, ?, ?)').run(r2.lastInsertRowid, 'Bedside Lamp',    'light',      0, 40);
-      const d5 = _db.prepare('INSERT INTO devices (room_id, name, type, status, value) VALUES (?, ?, ?, ?, ?)').run(r2.lastInsertRowid, 'AC Thermostat',   'thermostat', 1, 20.0);
-      const d6 = _db.prepare('INSERT INTO devices (room_id, name, type, status, value) VALUES (?, ?, ?, ?, ?)').run(r2.lastInsertRowid, 'Window Blind',    'blinds',     0, 30);
+      const d4 = _db.prepare('INSERT INTO devices (user_id, room_id, name, type, status, value) VALUES (?, ?, ?, ?, ?, ?)').run(adminUserId, r2.lastInsertRowid, 'Bedside Lamp',    'light',      0, 40);
+      const d5 = _db.prepare('INSERT INTO devices (user_id, room_id, name, type, status, value) VALUES (?, ?, ?, ?, ?, ?)').run(adminUserId, r2.lastInsertRowid, 'AC Thermostat',   'thermostat', 1, 20.0);
+      const d6 = _db.prepare('INSERT INTO devices (user_id, room_id, name, type, status, value) VALUES (?, ?, ?, ?, ?, ?)').run(adminUserId, r2.lastInsertRowid, 'Window Blind',    'blinds',     0, 30);
 
       // Kitchen devices
-      const d7 = _db.prepare('INSERT INTO devices (room_id, name, type, status, value) VALUES (?, ?, ?, ?, ?)').run(r3.lastInsertRowid, 'Kitchen Light',   'light',      1, 100);
-      const d8 = _db.prepare('INSERT INTO devices (room_id, name, type, status, value) VALUES (?, ?, ?, ?, ?)').run(r3.lastInsertRowid, 'Humidity Sensor', 'humidity',   1, 61);
+      const d7 = _db.prepare('INSERT INTO devices (user_id, room_id, name, type, status, value) VALUES (?, ?, ?, ?, ?, ?)').run(adminUserId, r3.lastInsertRowid, 'Kitchen Light',   'light',      1, 100);
+      const d8 = _db.prepare('INSERT INTO devices (user_id, room_id, name, type, status, value) VALUES (?, ?, ?, ?, ?, ?)').run(adminUserId, r3.lastInsertRowid, 'Humidity Sensor', 'humidity',   1, 61);
 
       // Office devices
-      const d9  = _db.prepare('INSERT INTO devices (room_id, name, type, status, value) VALUES (?, ?, ?, ?, ?)').run(r4.lastInsertRowid, 'Desk Lamp',        'light',      1, 60);
-      const d10 = _db.prepare('INSERT INTO devices (room_id, name, type, status, value) VALUES (?, ?, ?, ?, ?)').run(r4.lastInsertRowid, 'Office Thermostat', 'thermostat', 1, 22.0);
+      const d9  = _db.prepare('INSERT INTO devices (user_id, room_id, name, type, status, value) VALUES (?, ?, ?, ?, ?, ?)').run(adminUserId, r4.lastInsertRowid, 'Desk Lamp',        'light',      1, 60);
+      const d10 = _db.prepare('INSERT INTO devices (user_id, room_id, name, type, status, value) VALUES (?, ?, ?, ?, ?, ?)').run(adminUserId, r4.lastInsertRowid, 'Office Thermostat', 'thermostat', 1, 22.0);
 
       // Unused variable suppression (TS strict)
       void d1; void d4; void d6; void d7; void d9;
