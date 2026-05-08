@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
           )
         );
 
-        // Simula aggiornamenti ogni 5 secondi
+        // Aggiornamenti ogni 3 secondi
         let messageCount = 0;
         const interval = setInterval(() => {
           try {
@@ -71,8 +71,8 @@ export async function GET(request: NextRequest) {
               )
             );
 
-            // Chiudi la connessione dopo 60 secondi (max 12 messaggi)
-            if (messageCount >= 12) {
+            // Chiudi la connessione dopo ~60 secondi (max 20 messaggi)
+            if (messageCount >= 20) {
               controller.enqueue(
                 encoder.encode(
                   `data: ${JSON.stringify({ type: 'closed', reason: 'max_duration_reached' })}\n\n`
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
               )
             );
           }
-        }, 5000);
+        }, 3000);
 
         // Cleanup quando il client si disconnette
         request.signal.addEventListener('abort', () => {

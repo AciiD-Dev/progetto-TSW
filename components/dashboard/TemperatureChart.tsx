@@ -21,28 +21,56 @@ interface Props {
   readings: SensorReading[];
   title?: string;
   subtitle?: string;
-  color?: 'primary' | 'secondary';
+  color?: 'primary' | 'secondary' | 'tertiary';
+  type?: 'thermostat' | 'humidity';
 }
 
 export default function TemperatureChart({
   readings,
-  title = 'Temperature Trend',
+  title = 'Sensor Trend',
   subtitle = 'Last 24 hours',
   color = 'primary',
+  type = 'thermostat',
 }: Props) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  const accentColor = color === 'primary' ? '#5eead4' : '#a78bfa';
-  const glowColor   = color === 'primary' ? 'rgba(94,234,212,' : 'rgba(167,139,250,';
+  const accentColor = color === 'primary' ? '#5eead4' : color === 'secondary' ? '#a78bfa' : '#fba474';
+  const glowColor   = color === 'primary' ? 'rgba(94,234,212,' : color === 'secondary' ? 'rgba(167,139,250,' : 'rgba(251,164,116,';
 
-  const labels = readings.map((r) => {
-    const d = new Date(r.recorded_at);
-    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-  });
-  const values = readings.map((r) => r.value);
-  const minVal = values.length ? Math.min(...values) - 1 : 15;
-  const maxVal = values.length ? Math.max(...values) + 1 : 30;
+  // Build labels & values, inserting nulls where there are time gaps (device was off)
+  const GAP_THRESHOLD_MS = 30_000; // 30 seconds — anything longer is a gap
+  const labels: string[] = [];
+  const values: (number | null)[] = [];
+
+  for (let i = 0; i < readings.length; i++) {
+    // Detect gap between consecutive readings
+    if (i > 0) {
+      const prev = new Date(readings[i - 1].recorded_at).getTime();
+      const curr = new Date(readings[i].recorded_at).getTime();
+      if (curr - prev > GAP_THRESHOLD_MS) {
+        // Insert a null point to break the line
+        labels.push('');
+        values.push(null);
+      }
+    }
+    const d = new Date(readings[i].recorded_at);
+    labels.push(d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }));
+    values.push(readings[i].value);
+  }
+
+  const realValues = values.filter((v): v is number => v !== null);
+  
+  // Dynamic bounds based on type
+  let minVal = 0;
+  let maxVal = 100;
+  if (type === 'thermostat') {
+    minVal = realValues.length ? Math.min(...realValues) - 1 : 15;
+    maxVal = realValues.length ? Math.max(...realValues) + 1 : 30;
+  } else if (type === 'humidity') {
+    minVal = realValues.length ? Math.max(0, Math.min(...realValues) - 5) : 30;
+    maxVal = realValues.length ? Math.min(100, Math.max(...realValues) + 5) : 70;
+  }
 
   const data = {
     labels,
@@ -58,6 +86,7 @@ export default function TemperatureChart({
         pointHoverBorderWidth: 2,
         tension: 0.4,
         fill: true,
+        spanGaps: false,
         backgroundColor: (ctx: { chart: ChartJS }) => {
           const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, ctx.chart.height);
           gradient.addColorStop(0, `${glowColor}0.15)`);
@@ -89,7 +118,7 @@ export default function TemperatureChart({
         titleFont: { size: 11, family: 'Inter' },
         bodyFont: { size: 13, family: 'Space Grotesk', weight: 'bold' as const },
         callbacks: {
-          label: (ctx: any) => ` ${(ctx.parsed?.y ?? 0).toFixed(1)} °C`,
+          label: (ctx: any) => ` ${(ctx.parsed?.y ?? 0).toFixed(1)} ${type === 'thermostat' ? '°C' : '%'}`,
         },
       },
     },
@@ -116,14 +145,14 @@ export default function TemperatureChart({
           color: '#8b90a0',
           font: { size: 10, family: 'Inter' },
           maxTicksLimit: 5,
-          callback: (v) => `${v}°`,
+          callback: (v) => `${v}${type === 'thermostat' ? '°' : '%'}`,
         },
       },
     },
   };
 
   return (
-    <div className="bg-surface-container rounded-2xl border border-outline-variant/20 p-5 overflow-hidden">
+    <div className="h-full flex flex-col">
       <div className="flex items-start justify-between mb-5">
         <div>
           <h3 className="font-semibold text-on-surface headline-font text-sm">{title}</h3>
@@ -145,7 +174,7 @@ export default function TemperatureChart({
           <p className="text-sm text-on-surface-variant/40">No data available</p>
         </div>
       ) : (
-        <div className="h-52">
+        <div className="h-[200px] w-full">
           <Line data={data} options={options} />
         </div>
       )}

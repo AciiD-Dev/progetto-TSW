@@ -15,40 +15,43 @@ export async function GET(request: NextRequest) {
 
   try {
     const db = getDb();
-    const devices = db.prepare('SELECT * FROM devices WHERE type IN ("thermostat", "humidity")').all() as Device[];
+    const devices = db.prepare("SELECT * FROM devices WHERE type IN ('thermostat', 'humidity') AND status = 1").all() as Device[];
 
     const now = new Date().toISOString();
     let insertedCount = 0;
 
     const insertStmt = db.prepare('INSERT INTO sensor_readings (device_id, value, unit, recorded_at) VALUES (?, ?, ?, ?)');
-    const updateDeviceStmt = db.prepare('UPDATE devices SET value = ? WHERE id = ?');
 
     const transaction = db.transaction(() => {
       for (const device of devices) {
-        // Generate a new reading based on the last value with a simple drift logic
-        const drift = (Math.random() - 0.5) * 1.5; // -0.75 to +0.75
-        let newValue = device.value + drift;
-        
-        // Clamp bounds
+        // The device.value is the user's setpoint — we generate a reading
+        // that oscillates around it with small noise (±0.3°C or ±1%)
+        const noise = device.type === 'thermostat'
+          ? (Math.random() - 0.5) * 0.6   // ±0.3 °C
+          : (Math.random() - 0.5) * 2.0;  // ±1 %
+
+        let reading = device.value + noise;
+
+        // Clamp to realistic bounds
         if (device.type === 'thermostat') {
-           newValue = Math.max(16, Math.min(30, newValue));
+          reading = Math.max(10, Math.min(35, reading));
         } else if (device.type === 'humidity') {
-           newValue = Math.max(30, Math.min(70, newValue));
+          reading = Math.max(10, Math.min(95, reading));
         }
-        
-        newValue = parseFloat(newValue.toFixed(1));
+
+        reading = parseFloat(reading.toFixed(1));
         const unit = device.type === 'thermostat' ? '°C' : '%';
 
-        insertStmt.run(device.id, newValue, unit, now);
-        updateDeviceStmt.run(newValue, device.id);
+        // Only insert the reading — do NOT update device.value (that's the user setpoint)
+        insertStmt.run(device.id, reading, unit, now);
         insertedCount++;
 
         // Check alerts
-        const activeAlerts = db.prepare('SELECT * FROM alerts WHERE device_id = ? AND is_active = 1').all(device.id) as any[];
+        const activeAlerts = db.prepare("SELECT * FROM alerts WHERE device_id = ? AND is_active = 1").all(device.id) as any[];
         for (const alert of activeAlerts) {
           let triggered = false;
-          if (alert.rule_type === 'gt' && newValue > alert.threshold) triggered = true;
-          if (alert.rule_type === 'lt' && newValue < alert.threshold) triggered = true;
+          if (alert.rule_type === 'gt' && reading > alert.threshold) triggered = true;
+          if (alert.rule_type === 'lt' && reading < alert.threshold) triggered = true;
           if (triggered) {
             db.prepare('UPDATE alerts SET triggered_at = ? WHERE id = ?').run(now, alert.id);
           }

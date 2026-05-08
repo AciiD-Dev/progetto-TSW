@@ -62,6 +62,15 @@ export default function HistoryPage() {
 
   useEffect(() => {
     fetchReadings();
+
+    // Live polling: generate a new reading every 5s then refresh
+    const interval = setInterval(() => {
+      fetch('/api/cron/generate-readings')
+        .catch(console.error)
+        .finally(() => fetchReadings());
+    }, 3000);
+
+    return () => clearInterval(interval);
   }, [fetchReadings]);
 
   const getRoomName = (device: Device) =>
@@ -172,12 +181,15 @@ export default function HistoryPage() {
 
       {/* Chart */}
       {selectedDevice && (
-        <TemperatureChart
-          readings={readings}
-          title={`${selectedDevice.name} — ${getRoomName(selectedDevice)}`}
-          subtitle={range === '24h' ? 'Last 24 hours' : 'Last 7 days'}
-          color={selectedDevice.type === 'thermostat' ? 'secondary' : 'primary'}
-        />
+        <div className="bg-surface-container rounded-2xl border border-outline-variant/20 p-5 overflow-hidden min-h-[300px]">
+          <TemperatureChart
+            readings={readings}
+            title={`${selectedDevice.name} — ${getRoomName(selectedDevice)}`}
+            subtitle={range === '24h' ? 'Last 24 hours' : 'Last 7 days'}
+            color={selectedDevice.type === 'thermostat' ? 'secondary' : 'primary'}
+            type={selectedDevice.type as 'thermostat' | 'humidity'}
+          />
+        </div>
       )}
 
       {/* Table */}

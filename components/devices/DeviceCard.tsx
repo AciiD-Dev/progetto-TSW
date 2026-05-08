@@ -56,8 +56,10 @@ const typeConfig: Record<string, {
     color: 'text-primary',
     bgColor: 'bg-primary/10',
     borderColor: 'border-primary/25',
-    hasSlider: false,
-    readOnly: true,
+    hasSlider: true,
+    sliderLabel: 'Target',
+    sliderMin: 20,
+    sliderMax: 80,
   },
   blinds: {
     icon: 'blinds',
@@ -78,7 +80,10 @@ const typeConfig: Record<string, {
     color: 'text-tertiary',
     bgColor: 'bg-tertiary/10',
     borderColor: 'border-tertiary/30',
-    hasSlider: false,
+    hasSlider: true,
+    sliderLabel: 'Power',
+    sliderMin: 0,
+    sliderMax: 3000,
   },
 };
 
@@ -233,7 +238,7 @@ export default function DeviceCard({
         ) : (
           <div className="flex items-baseline gap-1">
             <span className={`text-2xl font-bold headline-font tabular-nums ${isOn ? cfg.color : 'text-on-surface-variant/40'}`}>
-              {device.type === 'thermostat' ? sliderLocal.toFixed(1) : sliderLocal}
+              {(device.type === 'thermostat' || device.type === 'humidity') ? sliderLocal.toFixed(1) : sliderLocal}
             </span>
             <span className={`text-sm ${isOn ? 'text-on-surface-variant' : 'text-on-surface-variant/30'}`}>
               {cfg.unit}
@@ -257,7 +262,7 @@ export default function DeviceCard({
             type="range"
             min={cfg.sliderMin}
             max={cfg.sliderMax}
-            step={device.type === 'thermostat' ? 0.5 : 1}
+            step={device.type === 'thermostat' || device.type === 'humidity' ? 0.5 : device.type === 'plug' ? 10 : 1}
             value={sliderLocal}
             onChange={(e) => setSliderLocal(Number(e.target.value))}
             onMouseUp={(e) => handleSliderCommit(Number((e.target as HTMLInputElement).value))}

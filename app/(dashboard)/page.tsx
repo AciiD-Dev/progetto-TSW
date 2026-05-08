@@ -34,10 +34,10 @@ const MetricCardsSection = dynamic(
 );
 
 const QUICK_ACTIONS = [
-  { id: 'all_lights_off', label: 'All Lights Off',  icon: 'lightbulb',      color: 'text-warning',   bg: 'bg-warning/10',   border: 'border-warning/20'   },
-  { id: 'night_mode',     label: 'Night Mode',      icon: 'bedtime',         color: 'text-secondary', bg: 'bg-secondary/10', border: 'border-secondary/20' },
-  { id: 'away_mode',      label: 'Away Mode',       icon: 'directions_walk', color: 'text-primary',   bg: 'bg-primary/10',   border: 'border-primary/20'   },
-  { id: 'eco_mode',       label: 'Eco Mode',        icon: 'eco',             color: 'text-tertiary',  bg: 'bg-tertiary/10',  border: 'border-tertiary/20'  },
+  { id: 'all_lights_off', label: 'All Lights Off', icon: 'lightbulb', color: 'text-warning', bg: 'bg-warning/10', border: 'border-warning/20' },
+  { id: 'night_mode', label: 'Night Mode', icon: 'bedtime', color: 'text-secondary', bg: 'bg-secondary/10', border: 'border-secondary/20' },
+  { id: 'away_mode', label: 'Away Mode', icon: 'directions_walk', color: 'text-primary', bg: 'bg-primary/10', border: 'border-primary/20' },
+  { id: 'eco_mode', label: 'Eco Mode', icon: 'eco', color: 'text-tertiary', bg: 'bg-tertiary/10', border: 'border-tertiary/20' },
 ];
 
 function getGreeting() {
@@ -49,18 +49,18 @@ function getGreeting() {
 
 export default function DashboardPage() {
   const { data: session } = useSession();
-  const [readings,    setReadings]    = useState<SensorReading[]>([]);
-  const [rooms,       setRooms]       = useState<Room[]>([]);
-  const [devices,     setDevices]     = useState<Device[]>([]);
-  const [devicesOn,   setDevicesOn]   = useState<number>(0);
-  const [avgTemp,     setAvgTemp]     = useState<string>('—');
-  const [avgHum,      setAvgHum]      = useState<string>('—');
-  const [activeAlerts,setActiveAlerts]= useState<number>(0);
-  const [chartReady,  setChartReady]  = useState(false);
+  const [sensorsReadings, setSensorsReadings] = useState<Record<number, SensorReading[]>>({});
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [devicesOn, setDevicesOn] = useState<number>(0);
+  const [avgTemp, setAvgTemp] = useState<string>('—');
+  const [avgHum, setAvgHum] = useState<string>('—');
+  const [activeAlerts, setActiveAlerts] = useState<number>(0);
+  const [chartReady, setChartReady] = useState(false);
 
   const [cards, setCards] = useState([
-    { id: 'temp',   props: { icon: "thermostat", label: "Avg Temperature", unit: "°C", color: "primary", description: "Across all thermostat sensors" } },
-    { id: 'power',  props: { icon: "power", label: "Devices On", color: "secondary", description: "Currently active devices" } },
+    { id: 'temp', props: { icon: "thermostat", label: "Avg Temperature", unit: "°C", color: "primary", description: "Across all thermostat sensors" } },
+    { id: 'power', props: { icon: "power", label: "Devices On", color: "secondary", description: "Currently active devices" } },
     { id: 'humidity', props: { icon: "humidity_mid", label: "Avg Humidity", unit: "%", color: "tertiary", description: "Across all humidity sensors" } },
     { id: 'alerts', props: { icon: "notifications_active", label: "Active Alerts" } },
   ]);
@@ -80,35 +80,56 @@ export default function DashboardPage() {
           return prev;
         });
       }
-    } catch {}
+    } catch { }
 
-    // Fetch initial data
-    Promise.all([
-      fetch('/api/devices').then((r) => r.json()),
-      fetch('/api/rooms').then((r) => r.json()),
-    ])
-      .then(([devicesData, roomsData]: [Device[], Room[]]) => {
-        setDevicesOn(devicesData.filter((d) => d.status === 1).length);
-        setDevices(devicesData);
-        setRooms(roomsData);
+    const fetchData = () => {
+      Promise.all([
+        fetch('/api/devices').then((r) => r.json()),
+        fetch('/api/rooms').then((r) => r.json()),
+      ])
+        .then(([devicesData, roomsData]: [Device[], Room[]]) => {
+          setDevicesOn(devicesData.filter((d) => d.status === 1).length);
+          setDevices(devicesData);
+          setRooms(roomsData);
 
-        const firstThermostat = devicesData.find((d) => d.type === 'thermostat');
-        if (!firstThermostat) {
-          setChartReady(true);
-          return;
-        }
+          const sensors = devicesData.filter((d) => d.type === 'thermostat' || d.type === 'humidity');
+          if (sensors.length === 0) {
+            setChartReady(true);
+            return;
+          }
 
-        return fetch(`/api/readings?deviceId=${firstThermostat.id}&range=24h`)
-          .then((r) => r.json())
-          .then((data: SensorReading[]) => {
-            setReadings(Array.isArray(data) ? data : []);
+          // Fetch readings for all sensors
+          return Promise.all(
+            sensors.map((sensor) =>
+              fetch(`/api/readings?deviceId=${sensor.id}&range=24h`)
+                .then((r) => r.json())
+                .then((data) => ({ id: sensor.id, data: Array.isArray(data) ? data : [] }))
+            )
+          ).then((results) => {
+            const readingsMap: Record<number, SensorReading[]> = {};
+            results.forEach((r) => {
+              readingsMap[r.id] = r.data;
+            });
+            setSensorsReadings(readingsMap);
             setChartReady(true);
           });
-      })
-      .catch((err) => {
-        console.error('[dashboard init]', err);
-        setChartReady(true);
-      });
+        })
+        .catch((err) => {
+          console.error('[dashboard init]', err);
+          setChartReady(true);
+        });
+    };
+
+    fetchData();
+
+    // Live polling for the demo: trigger cron to generate a reading and then fetch data
+    const interval = setInterval(() => {
+      fetch('/api/cron/generate-readings')
+        .catch(console.error)
+        .finally(() => fetchData());
+    }, 3000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // KeyboardSensor disabled — it generates aria-describedby IDs that
@@ -123,12 +144,8 @@ export default function DashboardPage() {
         const msg = JSON.parse(event.data);
         if (msg.type === 'update' && msg.data) {
           const { avgTemperature, avgHumidity, activeDevices } = msg.data;
-          if (avgTemperature !== null && avgTemperature !== undefined) {
-            setAvgTemp(String(avgTemperature));
-          }
-          if (avgHumidity !== null && avgHumidity !== undefined) {
-            setAvgHum(String(avgHumidity));
-          }
+          setAvgTemp(avgTemperature !== null && avgTemperature !== undefined ? String(avgTemperature) : '—');
+          setAvgHum(avgHumidity !== null && avgHumidity !== undefined ? String(avgHumidity) : '—');
           if (typeof activeDevices === 'number') {
             setDevicesOn(activeDevices);
           }
@@ -175,12 +192,12 @@ export default function DashboardPage() {
       away_mode: { thermostatTemp: 16, blindsClosed: true, turnOffLights: true, turnOffPlugs: true },
       eco_mode: { thermostatTemp: 20 }
     };
-    
+
     let config = DEFAULT_CONFIG;
     try {
       const saved = localStorage.getItem('homehub-quick-actions');
       if (saved) config = { ...DEFAULT_CONFIG, ...JSON.parse(saved) };
-    } catch {}
+    } catch { }
 
     if (actionId === 'all_lights_off') {
       ops = devices
@@ -237,7 +254,7 @@ export default function DashboardPage() {
           {getGreeting()}, {session?.user?.name?.split(' ')[0] || 'User'}
         </h1>
         <p className="text-sm text-on-surface-variant mt-0.5">
-          Your home at a glance · Live updates every 5s
+          Your home at a glance · Live updates every 3s
         </p>
       </div>
 
@@ -256,21 +273,44 @@ export default function DashboardPage() {
       </div>
 
       {/* Metric Cards */}
-      <MetricCardsSection 
-        cards={cards} 
-        avgTemp={avgTemp} 
-        devicesOn={devicesOn} 
-        avgHum={avgHum} 
+      <MetricCardsSection
+        cards={cards}
+        avgTemp={avgTemp}
+        devicesOn={devicesOn}
+        avgHum={avgHum}
         activeAlerts={activeAlerts}
         onCardsChange={(updated) => setCards(updated as typeof cards)}
       />
 
       {/* Bento Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        {/* Chart */}
-        <div className="lg:col-span-2 bg-surface-container rounded-2xl border border-outline-variant/20 p-5">
-          <h3 className="headline-font font-bold text-on-surface mb-4">Temperature Trends</h3>
-          {chartReady && <TemperatureChart readings={readings} title="Living Room Temperature" subtitle="Last 24 hours" color="primary" />}
+        {/* Charts */}
+        <div className="lg:col-span-2 space-y-4">
+          <h3 className="headline-font font-bold text-on-surface">Temperature & Humidity Trends</h3>
+          {chartReady && (
+            <div className="flex overflow-x-auto gap-4 custom-scrollbar snap-x snap-mandatory pb-4">
+              {devices.filter(d => d.type === 'thermostat' || d.type === 'humidity').length === 0 ? (
+                <div className="bg-surface-container rounded-2xl border border-outline-variant/20 p-5 w-full flex items-center justify-center min-h-[250px]">
+                  <p className="text-on-surface-variant">No climate sensors available.</p>
+                </div>
+              ) : (
+                devices.filter(d => d.type === 'thermostat' || d.type === 'humidity').map((sensor) => {
+                  const room = rooms.find(r => r.id === sensor.room_id);
+                  return (
+                    <div key={sensor.id} className="min-w-full sm:min-w-[calc(100%-40px)] lg:min-w-full snap-start bg-surface-container rounded-2xl border border-outline-variant/20 p-5 overflow-hidden">
+                      <TemperatureChart
+                        readings={sensorsReadings[sensor.id] || []}
+                        title={`${sensor.name} - ${room?.name || 'Unassigned'}`}
+                        subtitle="Last 24 hours"
+                        color={sensor.type === 'thermostat' ? 'secondary' : 'primary'}
+                        type={sensor.type as 'thermostat' | 'humidity'}
+                      />
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
         </div>
 
         {/* Rooms Panel */}
