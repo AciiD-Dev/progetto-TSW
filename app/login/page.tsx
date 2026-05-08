@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-
+import Link from 'next/link';
 /* ─── Feature Cards ─── */
 const features = [
   { icon: 'thermostat', color: '#818CF8', title: 'Climate Control', desc: 'Monitor and adjust temperature in real time.' },
@@ -406,8 +406,8 @@ export default function AuthPage() {
               )}
 
               <footer className="mt-10 flex justify-center gap-6">
-                <a href="#" className="text-[11px] text-on-surface-variant/50 hover:text-primary transition-colors">Privacy</a>
-                <a href="#" className="text-[11px] text-on-surface-variant/50 hover:text-primary transition-colors">Terms</a>
+                <Link href="/privacy" className="text-[11px] text-on-surface-variant/50 hover:text-primary transition-colors">Privacy</Link>
+                <Link href="/terms" className="text-[11px] text-on-surface-variant/50 hover:text-primary transition-colors">Terms</Link>
                 <span className="text-[11px] text-on-surface-variant/30">HomeHub v1.0</span>
               </footer>
             </div>

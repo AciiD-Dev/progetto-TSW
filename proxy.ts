@@ -18,6 +18,8 @@ const PUBLIC_PATHS = [
   '/robots.txt',
   '/sitemap.xml',
   '/pricing',
+  '/privacy',
+  '/terms',
 ];
 
 const PUBLIC_PREFIXES = [
