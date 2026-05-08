@@ -8,11 +8,8 @@ import React from 'react';
 const navLinks = [
   { href: '/',         label: 'Dashboard', icon: 'grid_view'     },
   { href: '/rooms',    label: 'Rooms',     icon: 'meeting_room'  },
-  { href: '/batch',    label: 'Batch',     icon: 'select_all'    },
-  { href: '/analytics',label: 'Analytics', icon: 'trending_up'   },
   { href: '/history',  label: 'History',   icon: 'bar_chart'     },
   { href: '/settings', label: 'Settings',  icon: 'tune'          },
-  { href: '/network',  label: 'Network',   icon: 'cloud_queue'   },
 ];
 
 interface DashboardNavProps {

@@ -298,10 +298,48 @@ export default function DashboardPage() {
         {/* Device Control Panel */}
         <div className="lg:col-span-3 bg-surface-container rounded-2xl border border-outline-variant/20 p-5">
           <h3 className="headline-font font-bold text-on-surface mb-4">Device Control</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {devices.map((device) => (
-              <DeviceCard key={device.id} device={device} onToggle={handleToggle} onSliderChange={handleSliderChange} />
-            ))}
+          <div className="space-y-8">
+            {rooms.map((room) => {
+              const roomDevices = devices.filter((d) => d.room_id === room.id);
+              if (roomDevices.length === 0) return null;
+
+              return (
+                <div key={room.id} className="space-y-3">
+                  <div className="flex items-center gap-2 text-on-surface-variant pl-1">
+                    <span className="material-symbols-outlined text-xl">{room.icon}</span>
+                    <h4 className="font-semibold text-sm tracking-wide">{room.name}</h4>
+                  </div>
+                  <div className="flex overflow-x-auto gap-4 pb-4 custom-scrollbar snap-x snap-mandatory">
+                    {roomDevices.map((device) => (
+                      <div key={device.id} className="w-[280px] sm:w-[320px] flex-shrink-0 snap-start">
+                        <DeviceCard device={device} onToggle={handleToggle} onSliderChange={handleSliderChange} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Handle unassigned devices */}
+            {(() => {
+              const unassigned = devices.filter(d => !rooms.some(r => r.id === d.room_id));
+              if (unassigned.length === 0) return null;
+              return (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-on-surface-variant pl-1">
+                    <span className="material-symbols-outlined text-xl">help_outline</span>
+                    <h4 className="font-semibold text-sm tracking-wide">Unassigned</h4>
+                  </div>
+                  <div className="flex overflow-x-auto gap-4 pb-4 custom-scrollbar snap-x snap-mandatory">
+                    {unassigned.map((device) => (
+                      <div key={device.id} className="w-[280px] sm:w-[320px] flex-shrink-0 snap-start">
+                        <DeviceCard device={device} onToggle={handleToggle} onSliderChange={handleSliderChange} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>

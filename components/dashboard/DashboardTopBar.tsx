@@ -8,12 +8,9 @@ import { signOut, useSession } from 'next-auth/react';
 const breadcrumbMap: Record<string, string> = {
   '/':         'Dashboard',
   '/rooms':    'Rooms',
-  '/batch':    'Batch Control',
-  '/analytics':'Analytics',
   '/history':  'History',
   '/settings': 'Settings',
   '/debug':    'Debug Inspector',
-  '/network':  'Network Inspector',
 };
 
 interface DashboardTopBarProps {
