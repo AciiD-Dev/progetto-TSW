@@ -49,10 +49,13 @@ export default function RoomsPage() {
     };
     return () => es.close();
   }, []);
-
+  // evita errory se dispostivi non formato array
+  const safeRooms = Array.isArray(rooms) ? rooms : [];
+  const safeDevices = Array.isArray(devices) ? devices : [];
+  const totalActive = safeDevices.filter((d) => d.status === 1).length;
   // Per-room computed values
   const getRoomStats = (roomId: number) => {
-    const roomDevices = devices.filter((d) => d.room_id === roomId);
+    const roomDevices = safeDevices.filter((d) => d.room_id === roomId);
     const activeCount = roomDevices.filter((d) => d.status === 1).length;
     const totalCount = roomDevices.length;
 
@@ -102,8 +105,8 @@ export default function RoomsPage() {
       toast.error('Failed to delete room');
     }
   };
-
-  const totalActive = devices.filter((d) => d.status === 1).length;
+  
+ 
 
   return (
     <div className="space-y-6 animate-fade-in-up">
@@ -112,7 +115,7 @@ export default function RoomsPage() {
         <div>
           <h1 className="headline-font text-2xl font-bold text-on-surface">Rooms</h1>
           <p className="text-sm text-on-surface-variant mt-0.5">
-            {rooms.length} room{rooms.length !== 1 ? 's' : ''} · {totalActive} devices active
+            {safeRooms.length} room{safeRooms.length !== 1 ? 's' : ''} · {totalActive} devices active
           </p>
         </div>
 
@@ -120,11 +123,11 @@ export default function RoomsPage() {
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container border border-outline-variant/20 text-xs text-on-surface-variant">
             <span className="material-symbols-outlined text-[14px] text-primary">meeting_room</span>
-            {rooms.length} rooms
+            {safeRooms.length} rooms
           </div>
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container border border-outline-variant/20 text-xs text-on-surface-variant">
             <span className="material-symbols-outlined text-[14px] text-tertiary">devices</span>
-            {devices.length} devices
+            {safeDevices.length} devices
           </div>
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tertiary/10 border border-tertiary/20 text-xs text-tertiary">
             <span className="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse" />
@@ -151,7 +154,7 @@ export default function RoomsPage() {
             />
           ))}
         </div>
-      ) : rooms.length === 0 ? (
+      ) : safeRooms.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <div className="w-16 h-16 rounded-2xl bg-surface-container flex items-center justify-center">
             <span className="material-symbols-outlined text-4xl text-on-surface-variant/30">meeting_room</span>
@@ -167,7 +170,7 @@ export default function RoomsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {rooms.map((room) => {
+          {safeRooms.map((room) => {
             const { activeCount, totalCount, currentTemp } = getRoomStats(room.id);
             return (
               <RoomCard

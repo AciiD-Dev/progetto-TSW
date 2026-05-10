@@ -91,18 +91,22 @@ export default function DashboardNav({ collapsed = false, onClose }: DashboardNa
             {!collapsed && <span className="text-sm font-medium">Debug</span>}
           </Link>
         )}
-        <a
-          href="#"
-          title={collapsed ? 'Support' : undefined}
-          className={`
-            group flex items-center gap-3 rounded-xl transition-all duration-200 select-none
-            text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high
-            ${collapsed ? 'px-0 py-3 justify-center' : 'px-3 py-2.5'}
-          `}
-        >
-          <span className="material-symbols-outlined text-[20px] flex-shrink-0">help_outline</span>
-          {!collapsed && <span className="text-sm font-medium">Support</span>}
-        </a>
+         <Link
+  href="/support"
+  onClick={onClose}
+  title={collapsed ? 'Support' : undefined}
+  className={`
+    group flex items-center gap-3 rounded-xl transition-all duration-200 select-none
+    text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high
+    ${pathname.startsWith('/support') ? 'bg-primary/10 text-primary' : ''}
+    ${collapsed ? 'px-0 py-3 justify-center' : 'px-3 py-2.5'}
+  `}
+>
+  <span className="material-symbols-outlined text-[20px] flex-shrink-0">
+    help_outline
+  </span>
+  {!collapsed && <span className="text-sm font-medium">Support</span>}
+</Link>
       </div>
     </nav>
   );

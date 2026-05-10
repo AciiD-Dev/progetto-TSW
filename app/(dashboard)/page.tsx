@@ -88,9 +88,12 @@ export default function DashboardPage() {
         fetch('/api/rooms').then((r) => r.json()),
       ])
         .then(([devicesData, roomsData]: [Device[], Room[]]) => {
-          setDevicesOn(devicesData.filter((d) => d.status === 1).length);
-          setDevices(devicesData);
-          setRooms(roomsData);
+          const safeDevicesData = Array.isArray(devicesData) ? devicesData : [];
+          const safeRoomsData = Array.isArray(roomsData) ? roomsData : [];
+          
+          setDevicesOn(safeDevicesData.filter((d) => d.status === 1).length);
+          setDevices(safeDevicesData);
+          setRooms(safeRoomsData);
 
           const sensors = devicesData.filter((d) => d.type === 'thermostat' || d.type === 'humidity');
           if (sensors.length === 0) {
