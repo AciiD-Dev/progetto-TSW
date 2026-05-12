@@ -17,17 +17,19 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 
-const IS_PROD = process.env.NODE_ENV === 'production';
-
-// In production, Vercel includes files from the repo root in the bundle
-// at process.cwd() (which maps to /var/task on AWS Lambda).
-const BUNDLE_DB = path.join(process.cwd(), 'homedb.sqlite');
+const IS_PROD   = process.env.NODE_ENV === 'production';
+const IS_VERCEL = !!process.env.VERCEL;
+const DB_NAME   = 'homedb.sqlite';
+const BUNDLE_DB = path.join(process.cwd(), '.next/server', DB_NAME);
 const TMP_DB    = '/tmp/homedb.sqlite';
 
-function resolveDbPath(): string {
-  if (!IS_PROD) return BUNDLE_DB;          // dev: use local file directly
+// Usa /tmp solo se siamo su Vercel, altrimenti usa il file locale anche in prod
+const DB_PATH   = IS_VERCEL ? TMP_DB : path.join(process.cwd(), DB_NAME);
 
-  // Production: copy the pre-seeded DB to /tmp if not already there
+function resolveDbPath(): string {
+  if (!IS_VERCEL) return DB_PATH;
+
+  // Production on Vercel: copy the pre-seeded DB to /tmp if not already there
   if (!fs.existsSync(TMP_DB)) {
     if (fs.existsSync(BUNDLE_DB)) {
       fs.copyFileSync(BUNDLE_DB, TMP_DB);
@@ -114,7 +116,7 @@ function getDb(): Database.Database {
   // ── Seed default admin user ─────────────────────────────────────────────
   const userCount = _db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
   if (userCount.count === 0) {
-    // Hash for 'password123'  (bcrypt native, rounds=10)
+    // Hash for 'password123'  (bcryptjs, rounds=10)
     const defaultHash = '$2b$10$9id7CE.DrcXr5ezBG1FZJOEg3iVmQ.ZhhIKodeaOjDCP./KqC4jaS';
     _db.prepare('INSERT INTO users (email, name, password_hash) VALUES (?, ?, ?)')
       .run('admin@home.local', 'Admin', defaultHash);

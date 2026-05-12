@@ -9,6 +9,8 @@
 import { auth } from '@/auth';
 import { NextResponse } from 'next/server';
 
+console.log('[Middleware] Execution started');
+
 const PUBLIC_PATHS = [
   '/login',
   '/register',
@@ -31,7 +33,7 @@ const PUBLIC_PREFIXES = [
   '/images/',
 ];
 
-export const proxy = auth((req) => {
+const middleware = auth((req) => {
   const { pathname } = req.nextUrl;
 
   // Allow public exact paths
@@ -45,6 +47,7 @@ export const proxy = auth((req) => {
   }
 
   // Check Auth.js session (injected by the auth() wrapper)
+  console.log('[Middleware] Path:', pathname, '| Auth session present:', !!req.auth);
   if (!req.auth) {
     const loginUrl = new URL('/login', req.url);
     return NextResponse.redirect(loginUrl);
@@ -52,6 +55,9 @@ export const proxy = auth((req) => {
 
   return NextResponse.next();
 });
+
+export default middleware;
+export { middleware as proxy };
 
 export const config = {
   matcher: [

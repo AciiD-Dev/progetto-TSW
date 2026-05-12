@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import Link from 'next/link';
 /* ─── Feature Cards ─── */
 const features = [
@@ -44,6 +44,7 @@ function Particles({ mounted }: { mounted: boolean }) {
 
 export default function AuthPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [mounted, setMounted] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
@@ -90,8 +91,7 @@ export default function AuthPage() {
     try {
       const res = await signIn('credentials', { email, password, redirect: false });
       if (res?.error) { setError('Invalid credentials. Please try again.'); setLoading(false); return; }
-      router.refresh();
-      router.push('/');
+      window.location.href = '/';
     } catch { setError('Network error. Please try again.'); setLoading(false); }
   };
 
@@ -115,8 +115,7 @@ export default function AuthPage() {
       // Auto-login after registration
       const signInRes = await signIn('credentials', { email, password, redirect: false });
       if (signInRes?.error) { setError('Registered! Please sign in.'); setLoading(false); return; }
-      router.refresh();
-      router.push('/');
+      window.location.href = '/';
     } catch { setError('Network error. Please try again.'); setLoading(false); }
   };
 

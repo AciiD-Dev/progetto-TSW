@@ -5,8 +5,8 @@ import { Device } from '@/types';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  // Protect with cron secret if in production
-  if (process.env.NODE_ENV === 'production') {
+  // Protect with cron secret if in production and secret is set
+  if (process.env.NODE_ENV === 'production' && process.env.CRON_SECRET) {
     const authHeader = request.headers.get('authorization');
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -15,9 +15,10 @@ export async function GET(request: NextRequest) {
 
   try {
     const db = getDb();
-    const devices = db.prepare("SELECT * FROM devices WHERE type IN ('thermostat', 'humidity') AND status = 1").all() as Device[];
-
     const now = new Date().toISOString();
+    const devices = db.prepare("SELECT * FROM devices WHERE type IN ('thermostat', 'humidity') AND status = 1").all() as Device[];
+    
+    console.log(`[cron] Found ${devices.length} active climate devices at ${now}`);
     let insertedCount = 0;
 
     const insertStmt = db.prepare('INSERT INTO sensor_readings (device_id, value, unit, recorded_at) VALUES (?, ?, ?, ?)');

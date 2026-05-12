@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import getDb from "@/lib/server/db";
 import { NextResponse } from "next/server";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 export async function POST(req: Request) {
   const session = await auth();

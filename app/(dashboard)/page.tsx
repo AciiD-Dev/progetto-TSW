@@ -116,6 +116,7 @@ export default function DashboardPage() {
             results.forEach((r) => {
               readingsMap[r.id] = r.data;
             });
+            console.log('[dashboard] Received readings map:', Object.keys(readingsMap).map(id => `${id}: ${readingsMap[Number(id)].length} pts`));
             setSensorsReadings(readingsMap);
             setChartReady(true);
           });
