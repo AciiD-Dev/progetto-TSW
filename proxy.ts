@@ -20,6 +20,7 @@ const PUBLIC_PATHS = [
   '/pricing',
   '/privacy',
   '/terms',
+  '/support',
 ];
 
 const PUBLIC_PREFIXES = [

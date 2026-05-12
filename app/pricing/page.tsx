@@ -1,145 +1,175 @@
 import NavBar from '@/components/layout/NavBar';
 import Footer from '@/components/layout/Footer';
+import Link from 'next/link';
 import React from 'react';
 
 export default function PricingPage() {
   return (
-    <div className="bg-background text-on-background selection:bg-primary/30 min-h-screen font-['Inter']">
+    <div className="bg-background text-on-surface selection:bg-primary/30 min-h-screen font-['Inter'] flex flex-col">
       <NavBar />
-      <main className="pt-32 pb-24 px-6 md:px-12 max-w-7xl mx-auto">
-        <div className="text-center mb-20 space-y-4">
-          <h1 className="headline-font text-4xl md:text-6xl font-bold tracking-tight text-on-background">
-            Elevate Your <span className="text-primary">Logic Architecture</span>
+      
+      <main className="flex-grow pt-32 pb-24 px-6 md:px-12 max-w-7xl mx-auto w-full">
+        <div className="text-center mb-16 space-y-4 animate-fade-in-up">
+          <h1 className="headline-font text-4xl md:text-6xl font-bold tracking-tight text-on-surface">
+            The Right Plan for Your <span className="text-primary">Smart Home</span>
           </h1>
-          <p className="font-body text-on-surface-variant max-w-2xl mx-auto text-lg leading-relaxed">
-            Choose the engine that powers your next breakthrough. From individual experiments to industrial-grade
-            deployments.
+          <p className="text-on-surface-variant max-w-2xl mx-auto text-lg leading-relaxed">
+            From single apartments to multi-story villas, HomeHub scales with your needs. 
+            Automate your life with precision and style.
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
-          <div className="flex flex-col p-8 rounded-xl bg-surface-container-low border border-outline-variant/15 transition-all duration-300 hover:bg-surface-container">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch mb-20">
+          {/* Basic Plan */}
+          <div className="flex flex-col p-8 rounded-[2rem] bg-surface-container border border-outline-variant/20 transition-all duration-300 hover:border-primary/30">
             <div className="mb-8">
-              <h3 className="headline-font text-xl font-bold text-on-surface mb-2">Free (Guest)</h3>
+              <h3 className="headline-font text-xl font-bold text-on-surface mb-2">Essential</h3>
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-bold headline-font">$0</span>
-                <span className="text-on-surface-variant text-[10px] uppercase font-bold tracking-widest">/forever</span>
+                <span className="text-4xl font-bold headline-font text-on-surface">$0</span>
+                <span className="text-on-surface-variant text-xs uppercase font-bold tracking-widest">/forever</span>
               </div>
+              <p className="text-sm text-on-surface-variant mt-3">Perfect for getting started with smart home basics.</p>
             </div>
+            
             <ul className="space-y-4 mb-10 flex-grow">
-              <li className="flex items-start gap-3 text-on-surface-variant text-sm">
-                <span className="material-symbols-outlined text-primary text-sm mt-0.5">check_circle</span>
-                Public Node Library Access
+              <li className="flex items-center gap-3 text-on-surface-variant text-sm">
+                <span className="material-symbols-outlined text-primary text-[20px]">check_circle</span>
+                Up to 5 Smart Devices
               </li>
-              <li className="flex items-start gap-3 text-on-surface-variant text-sm">
-                <span className="material-symbols-outlined text-primary text-sm mt-0.5">check_circle</span>
-                Standard IoT Connectors
+              <li className="flex items-center gap-3 text-on-surface-variant text-sm">
+                <span className="material-symbols-outlined text-primary text-[20px]">check_circle</span>
+                2 Rooms Management
               </li>
-              <li className="flex items-start gap-3 text-on-surface-variant text-sm">
-                <span className="material-symbols-outlined text-primary text-sm mt-0.5">check_circle</span>
-                Community Forum Support
+              <li className="flex items-center gap-3 text-on-surface-variant text-sm">
+                <span className="material-symbols-outlined text-primary text-[20px]">check_circle</span>
+                Live Dashboard Control
               </li>
-              <li className="flex items-start gap-3 text-on-surface-variant/40 text-sm">
-                <span className="material-symbols-outlined text-sm mt-0.5">cancel</span>
-                Project Saving
+              <li className="flex items-center gap-3 text-on-surface-variant/40 text-sm">
+                <span className="material-symbols-outlined text-[20px]">cancel</span>
+                Historical Data Trends
               </li>
             </ul>
-            <button className="w-full py-3 px-4 rounded-lg border border-outline-variant/30 text-on-surface font-semibold hover:bg-surface-container-highest transition-colors">
-              Start Designing
-            </button>
+            
+            <Link
+              href="/register"
+              className="w-full py-4 px-4 rounded-2xl bg-surface-container-highest text-on-surface font-bold hover:bg-outline-variant/20 transition-all text-center"
+            >
+              Get Started
+            </Link>
           </div>
 
-          <div className="relative flex flex-col p-8 rounded-xl glass-panel border border-primary/30 shadow-[0px_0px_40px_rgba(109,221,255,0.15)] transform md:scale-105 z-10 overflow-hidden">
-            <div className="absolute top-0 right-0 bg-primary px-4 py-1 text-[#0b0e14] text-[0.625rem] font-bold tracking-widest uppercase rounded-bl-lg">
-              Best Value
+          {/* Pro Plan */}
+          <div className="relative flex flex-col p-8 rounded-[2.5rem] bg-surface-container border-2 border-primary/40 shadow-2xl shadow-primary/10 transform md:scale-105 z-10 overflow-hidden">
+            <div className="absolute top-0 right-0 bg-primary px-5 py-1.5 text-background text-[0.65rem] font-bold tracking-widest uppercase rounded-bl-2xl">
+              Recommended
             </div>
+            
             <div className="mb-8">
-              <h3 className="headline-font text-xl font-bold text-primary mb-2">Pro</h3>
+              <h3 className="headline-font text-xl font-bold text-primary mb-2">Home Pro</h3>
               <div className="flex items-baseline gap-1">
-                <span className="text-5xl font-bold headline-font text-on-background">$19</span>
-                <span className="text-on-surface-variant text-[10px] uppercase font-bold tracking-widest">/mo</span>
+                <span className="text-5xl font-bold headline-font text-on-surface">$9</span>
+                <span className="text-on-surface-variant text-xs uppercase font-bold tracking-widest">/mo</span>
               </div>
-              <p className="text-xs text-primary/80 mt-2 font-medium">Billed annually</p>
+              <p className="text-sm text-primary font-medium mt-3">Full control and advanced automation.</p>
             </div>
+            
             <ul className="space-y-4 mb-10 flex-grow">
-              <li className="flex items-start gap-3 text-on-surface text-sm font-medium">
-                <span className="material-symbols-outlined text-primary text-sm mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                Project Saving &amp; History
+              <li className="flex items-center gap-3 text-on-surface text-sm font-medium">
+                <span className="material-symbols-outlined text-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+                Unlimited Devices & Rooms
               </li>
-              <li className="flex items-start gap-3 text-on-surface text-sm font-medium">
-                <span className="material-symbols-outlined text-primary text-sm mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                Advanced Logic Nodes
+              <li className="flex items-center gap-3 text-on-surface text-sm font-medium">
+                <span className="material-symbols-outlined text-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+                30-Day Sensor History
               </li>
-              <li className="flex items-start gap-3 text-on-surface text-sm font-medium">
-                <span className="material-symbols-outlined text-primary text-sm mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                24/7 Priority Support
+              <li className="flex items-center gap-3 text-on-surface text-sm font-medium">
+                <span className="material-symbols-outlined text-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+                Advanced Custom Automations
               </li>
-              <li className="flex items-start gap-3 text-on-surface text-sm font-medium">
-                <span className="material-symbols-outlined text-primary text-sm mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                Unlimited Data Flow Streams
+              <li className="flex items-center gap-3 text-on-surface text-sm font-medium">
+                <span className="material-symbols-outlined text-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+                Smart Alerts & Notifications
               </li>
-              <li className="flex items-start gap-3 text-on-surface text-sm font-medium">
-                <span className="material-symbols-outlined text-primary text-sm mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                Custom API Integrations
+              <li className="flex items-center gap-3 text-on-surface text-sm font-medium">
+                <span className="material-symbols-outlined text-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+                Priority Support Access
               </li>
             </ul>
-            <button className="w-full py-4 px-4 rounded-lg ethereal-gradient text-[#0b0e14] font-bold text-lg shadow-[0px_12px_32px_rgba(109,221,255,0.2)] hover:brightness-110 transition-all scale-95 active:scale-90">
-              Choose Plan
-            </button>
+            
+            <Link
+              href="/register"
+              className="w-full py-4 px-4 rounded-2xl primary-gradient text-white font-bold text-lg shadow-lg shadow-primary/25 hover:brightness-110 transition-all text-center"
+            >
+              Upgrade Now
+            </Link>
           </div>
 
-          <div className="flex flex-col p-8 rounded-xl bg-surface-container-low border border-outline-variant/15 transition-all duration-300 hover:bg-surface-container">
+          {/* Premium Plan */}
+          <div className="flex flex-col p-8 rounded-[2rem] bg-surface-container border border-outline-variant/20 transition-all duration-300 hover:border-secondary/30">
             <div className="mb-8">
-              <h3 className="headline-font text-xl font-bold text-on-surface mb-2">Enterprise</h3>
+              <h3 className="headline-font text-xl font-bold text-on-surface mb-2">Infinite</h3>
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-bold headline-font">Custom</span>
+                <span className="text-4xl font-bold headline-font text-on-surface">$19</span>
+                <span className="text-on-surface-variant text-xs uppercase font-bold tracking-widest">/mo</span>
               </div>
+              <p className="text-sm text-on-surface-variant mt-3">For tech enthusiasts and luxury homes.</p>
             </div>
+            
             <ul className="space-y-4 mb-10 flex-grow">
-              <li className="flex items-start gap-3 text-on-surface-variant text-sm">
-                <span className="material-symbols-outlined text-secondary text-sm mt-0.5">verified</span>
-                On-Premise Deployment
+              <li className="flex items-center gap-3 text-on-surface-variant text-sm">
+                <span className="material-symbols-outlined text-secondary text-[20px]">auto_awesome</span>
+                Multi-Home Management
               </li>
-              <li className="flex items-start gap-3 text-on-surface-variant text-sm">
-                <span className="material-symbols-outlined text-secondary text-sm mt-0.5">verified</span>
-                Custom Node Development
+              <li className="flex items-center gap-3 text-on-surface-variant text-sm">
+                <span className="material-symbols-outlined text-secondary text-[20px]">auto_awesome</span>
+                Infinite Data Retention
               </li>
-              <li className="flex items-start gap-3 text-on-surface-variant text-sm">
-                <span className="material-symbols-outlined text-secondary text-sm mt-0.5">verified</span>
-                SLA &amp; Dedicated Account Manager
+              <li className="flex items-center gap-3 text-on-surface-variant text-sm">
+                <span className="material-symbols-outlined text-secondary text-[20px]">auto_awesome</span>
+                API Access for Integrations
               </li>
-              <li className="flex items-start gap-3 text-on-surface-variant text-sm">
-                <span className="material-symbols-outlined text-secondary text-sm mt-0.5">verified</span>
-                SSO &amp; Advanced Security
+              <li className="flex items-center gap-3 text-on-surface-variant text-sm">
+                <span className="material-symbols-outlined text-secondary text-[20px]">auto_awesome</span>
+                Dedicated Personal Assistant
               </li>
             </ul>
-            <button className="w-full py-3 px-4 rounded-lg border border-secondary/30 text-secondary font-semibold hover:bg-secondary/5 transition-colors">
-              Contact Sales
-            </button>
+            
+            <Link
+              href="/register"
+              className="w-full py-4 px-4 rounded-2xl border-2 border-secondary/20 text-on-surface font-bold hover:bg-secondary/10 transition-all text-center"
+            >
+              Go Infinite
+            </Link>
           </div>
         </div>
 
-        <div className="mt-32 grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="md:col-span-2 p-8 rounded-2xl bg-surface-container-low border border-outline-variant/10 overflow-hidden relative">
-            <h4 className="headline-font text-2xl font-bold mb-4">Precision Orchestration</h4>
-            <p className="text-on-surface-variant text-sm max-w-xs">Our advanced node engine handles millions of concurrent data streams with zero latency overhead.</p>
-            <div className="absolute -right-10 -bottom-10 opacity-20">
-              <span className="material-symbols-outlined text-[180px] text-primary" style={{ fontVariationSettings: "'wght' 100" }}>account_tree</span>
-            </div>
+        {/* Feature Highlights */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="p-6 rounded-3xl bg-surface-container-low border border-outline-variant/10">
+            <span className="material-symbols-outlined text-primary mb-3">speed</span>
+            <h4 className="font-bold mb-1">Zero Latency</h4>
+            <p className="text-xs text-on-surface-variant">Real-time updates every 3 seconds for instant response.</p>
           </div>
-          <div className="p-8 rounded-2xl bg-gradient-to-br from-surface-container-high to-surface-container border border-outline-variant/10">
-            <span className="material-symbols-outlined text-primary mb-4">memory</span>
-            <h4 className="headline-font text-lg font-bold">Edge AI</h4>
-            <p className="text-on-surface-variant text-xs mt-2">Deploy models directly to IoT hardware with one-click export.</p>
+          <div className="p-6 rounded-3xl bg-surface-container-low border border-outline-variant/10">
+            <span className="material-symbols-outlined text-secondary mb-3">security</span>
+            <h4 className="font-bold mb-1">Privacy First</h4>
+            <p className="text-xs text-on-surface-variant">All your home data is encrypted and stays yours.</p>
           </div>
-          <div className="p-8 rounded-2xl bg-gradient-to-br from-surface-container-high to-surface-container border border-outline-variant/10">
-            <span className="material-symbols-outlined text-secondary mb-4">security</span>
-            <h4 className="headline-font text-lg font-bold">Encrypted</h4>
-            <p className="text-on-surface-variant text-xs mt-2">End-to-end encryption for all logic pipelines and data flows.</p>
+          <div className="p-6 rounded-3xl bg-surface-container-low border border-outline-variant/10">
+            <span className="material-symbols-outlined text-tertiary mb-3">eco</span>
+            <h4 className="font-bold mb-1">Energy Saving</h4>
+            <p className="text-xs text-on-surface-variant">Intelligent algorithms to reduce your home consumption.</p>
+          </div>
+          <div className="p-6 rounded-3xl bg-surface-container-low border border-outline-variant/10">
+            <span className="material-symbols-outlined text-warning mb-3">phonelink</span>
+            <h4 className="font-bold mb-1">Universal</h4>
+            <p className="text-xs text-on-surface-variant">Compatible with over 200+ smart device brands.</p>
           </div>
         </div>
       </main>
+      
       <Footer />
     </div>
   );
 }
+
