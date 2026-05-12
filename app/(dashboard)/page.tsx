@@ -86,12 +86,15 @@ export default function DashboardPage() {
       Promise.all([
         fetch('/api/devices').then((r) => r.json()),
         fetch('/api/rooms').then((r) => r.json()),
+        fetch('/api/alerts').then((r) => r.json()),
       ])
-        .then(([devicesData, roomsData]: [Device[], Room[]]) => {
+        .then(([devicesData, roomsData, alertsData]: [Device[], Room[], any[]]) => {
           const safeDevicesData = Array.isArray(devicesData) ? devicesData : [];
           const safeRoomsData = Array.isArray(roomsData) ? roomsData : [];
-          
+          const safeAlertsData = Array.isArray(alertsData) ? alertsData : [];
+
           setDevicesOn(safeDevicesData.filter((d) => d.status === 1).length);
+          setActiveAlerts(safeAlertsData.filter(a => a.is_active === 1 && a.triggered_at).length);
           setDevices(safeDevicesData);
           setRooms(safeRoomsData);
 
@@ -139,18 +142,21 @@ export default function DashboardPage() {
   // mismatch between SSR and client, causing hydration errors.
   // Drag-and-drop logic is now in MetricCardsSection component and rendered client-only.
 
-  // Real-time SSE — stream sends { type, data: { activeDevices, avgTemperature, avgHumidity } }
+  // Real-time SSE — stream sends { type, data: { activeDevices, avgTemperature, avgHumidity, activeAlerts } }
   useEffect(() => {
     const es = new EventSource('/api/events/stream');
     es.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data);
         if (msg.type === 'update' && msg.data) {
-          const { avgTemperature, avgHumidity, activeDevices } = msg.data;
+          const { avgTemperature, avgHumidity, activeDevices, activeAlerts: alertsCount } = msg.data;
           setAvgTemp(avgTemperature !== null && avgTemperature !== undefined ? String(avgTemperature) : '—');
           setAvgHum(avgHumidity !== null && avgHumidity !== undefined ? String(avgHumidity) : '—');
           if (typeof activeDevices === 'number') {
             setDevicesOn(activeDevices);
+          }
+          if (typeof alertsCount === 'number') {
+            setActiveAlerts(alertsCount);
           }
         }
       } catch (err) {

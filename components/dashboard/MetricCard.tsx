@@ -12,7 +12,7 @@ interface MetricCardProps {
 }
 
 const colorMap = {
-  primary:   {
+  primary: {
     icon: 'text-primary',
     bg: 'bg-primary/10',
     border: 'border-primary/20',
@@ -26,21 +26,21 @@ const colorMap = {
     glow: 'shadow-secondary/10',
     dot: 'bg-secondary',
   },
-  tertiary:  {
+  tertiary: {
     icon: 'text-tertiary',
     bg: 'bg-tertiary/10',
     border: 'border-tertiary/20',
     glow: 'shadow-tertiary/10',
     dot: 'bg-tertiary',
   },
-  warning:   {
+  warning: {
     icon: 'text-warning',
     bg: 'bg-warning/10',
     border: 'border-warning/20',
     glow: 'shadow-warning/10',
     dot: 'bg-warning',
   },
-  error:     {
+  error: {
     icon: 'text-error',
     bg: 'bg-error/10',
     border: 'border-error/20',

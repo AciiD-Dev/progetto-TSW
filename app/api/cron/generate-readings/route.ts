@@ -52,8 +52,12 @@ export async function GET(request: NextRequest) {
           let triggered = false;
           if (alert.rule_type === 'gt' && reading > alert.threshold) triggered = true;
           if (alert.rule_type === 'lt' && reading < alert.threshold) triggered = true;
+          
           if (triggered) {
             db.prepare('UPDATE alerts SET triggered_at = ? WHERE id = ?').run(now, alert.id);
+          } else {
+            // Reset triggered_at if condition is no longer met
+            db.prepare('UPDATE alerts SET triggered_at = NULL WHERE id = ?').run(alert.id);
           }
         }
       }

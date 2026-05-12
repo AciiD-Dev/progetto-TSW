@@ -50,18 +50,25 @@ export const createReadingSchema = {
   // aggiungi altri campi se necessari
 };
 
-// Validazione Alert
+// Validazione Alert Rule (DB)
 export const createAlertSchema = {
+  device_id: {
+    required: true,
+    type: 'number',
+  },
+  rule_type: {
+    required: true,
+    enum: ['gt', 'lt'],
+  },
+  threshold: {
+    required: true,
+    type: 'number',
+  },
   message: {
     required: true,
     minLength: 5,
     maxLength: 255,
   },
-  type: {
-    required: true,
-    enum: ['info', 'warning', 'error', 'success'],
-  },
-  // aggiungi altri campi se necessari, ad esempio device_id
 };
 
 // Validazione Room

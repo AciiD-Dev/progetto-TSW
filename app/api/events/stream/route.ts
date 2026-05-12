@@ -53,6 +53,10 @@ export async function GET(request: NextRequest) {
               )
               .get(userId) as { avg_humidity: number | null };
 
+            const activeAlerts = db
+              .prepare('SELECT COUNT(*) as count FROM alerts WHERE is_active = 1 AND triggered_at IS NOT NULL AND user_id = ?')
+              .get(userId) as { count: number };
+
             messageCount++;
 
             // Invia l'aggiornamento
@@ -65,6 +69,7 @@ export async function GET(request: NextRequest) {
                     activeDevices: devices.count,
                     avgTemperature: avgTemp.avg_temp ? Math.round(avgTemp.avg_temp * 10) / 10 : null,
                     avgHumidity: avgHumidity.avg_humidity ? Math.round(avgHumidity.avg_humidity * 10) / 10 : null,
+                    activeAlerts: activeAlerts.count,
                   },
                   messageNumber: messageCount,
                 })}\n\n`

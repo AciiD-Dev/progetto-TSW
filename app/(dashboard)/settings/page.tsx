@@ -4,6 +4,7 @@
 import React, { useEffect, useState } from 'react';
 import { useToast } from '@/components/ui/ToastProvider';
 import Link from 'next/link';
+import { signOut, useSession } from 'next-auth/react';
 
 interface Device {
   id: number;
@@ -22,66 +23,46 @@ interface AlertRule {
   triggered_at: string | null;
 }
 
-const settingsSections = [
-  {
-    title: 'Notifications',
-    icon: 'notifications',
-    color: 'text-primary',
-    bg: 'bg-primary/10',
-    items: [
-      { label: 'Push Notifications', description: 'Receive alerts for device events', coming: false, enabled: true },
-      { label: 'Email Alerts', description: 'Send critical alerts via email', coming: true, enabled: false },
-      { label: 'Temperature Alerts', description: 'Alert when temp exceeds threshold', coming: true, enabled: false },
-    ],
-  },
-  {
-    title: 'Integrations',
-    icon: 'hub',
-    color: 'text-secondary',
-    bg: 'bg-secondary/10',
-    items: [
-      { label: 'Google Home', description: 'Connect with Google Home ecosystem', coming: true, enabled: false },
-      { label: 'Amazon Alexa', description: 'Voice control via Amazon Alexa', coming: true, enabled: false },
-      { label: 'Apple HomeKit', description: 'Integrate with Apple HomeKit', coming: true, enabled: false },
-    ],
-  },
-  {
-    title: 'Appearance',
-    icon: 'palette',
-    color: 'text-tertiary',
-    bg: 'bg-tertiary/10',
-    items: [
-      { label: 'Dark Mode', description: 'Always use dark theme', coming: false, enabled: true },
-      { label: 'Compact View', description: 'Reduce spacing in dashboard', coming: true, enabled: false },
-      { label: 'Animations', description: 'Enable UI animations', coming: false, enabled: true },
-    ],
-  },
-  {
-    title: 'Security',
-    icon: 'security',
-    color: 'text-error',
-    bg: 'bg-error/10',
-    items: [
-      { label: 'Two-Factor Auth', description: 'Enable 2FA for enhanced security', coming: true, enabled: false },
-      { label: 'Change Password', description: 'Update your account password', coming: false, enabled: false },
-    ],
-  },
-];
-
 export default function SettingsPage() {
+  const { data: session } = useSession();
   const [alerts, setAlerts] = useState<AlertRule[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Form state
+  // General Settings State
+  const [pushEnabled, setPushEnabled] = useState(true);
+  const [darkMode, setDarkMode] = useState(true);
+  const [animationsEnabled, setAnimationsEnabled] = useState(true);
+  const [mounted, setMounted] = useState(false);
+
+  // Form state for alerts
   const [deviceId, setDeviceId] = useState('');
   const [ruleType, setRuleType] = useState<'gt' | 'lt'>('gt');
   const [threshold, setThreshold] = useState('');
   const [message, setMessage] = useState('');
 
+  // Password change state
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+
   const toast = useToast();
 
   useEffect(() => {
+    // Load general settings from LocalStorage ONLY once mounted
+    const savedPush = localStorage.getItem('homehub-push-enabled');
+    const savedTheme = localStorage.getItem('theme');
+    const savedAnims = localStorage.getItem('homehub-animations-enabled');
+
+    if (savedPush !== null) setPushEnabled(savedPush === 'true');
+    if (savedTheme !== null) setDarkMode(savedTheme === 'dark');
+    if (savedAnims !== null) setAnimationsEnabled(savedAnims === 'true');
+    
+    setMounted(true);
+
+    // Load alerts and devices
     Promise.all([
       fetch('/api/alerts').then(res => res.json()),
       fetch('/api/devices').then(res => res.json())
@@ -95,6 +76,37 @@ export default function SettingsPage() {
       toast.error('Failed to load alerts');
     });
   }, [toast]);
+
+  // Sync theme with DOM (only after mounting)
+  useEffect(() => {
+    if (!mounted) return;
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [darkMode, mounted]);
+
+  // Sync animations with DOM (only after mounting)
+  useEffect(() => {
+    if (!mounted) return;
+    if (animationsEnabled) {
+      document.documentElement.classList.remove('no-animations');
+      localStorage.setItem('homehub-animations-enabled', 'true');
+    } else {
+      document.documentElement.classList.add('no-animations');
+      localStorage.setItem('homehub-animations-enabled', 'false');
+    }
+  }, [animationsEnabled, mounted]);
+
+  const handlePushToggle = () => {
+    const newState = !pushEnabled;
+    setPushEnabled(newState);
+    localStorage.setItem('homehub-push-enabled', String(newState));
+    toast.success(`Push notifications ${newState ? 'enabled' : 'disabled'}`);
+  };
 
   const handleAddAlert = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,8 +165,89 @@ export default function SettingsPage() {
     }
   };
 
+  const handleResetSettings = async () => {
+    if (!confirm('Are you sure you want to reset all settings to defaults? This will clear theme preferences, quick actions configuration, and DELETE all alert rules.')) return;
+    
+    // Clear LocalStorage
+    localStorage.removeItem('theme');
+    localStorage.removeItem('homehub-animations-enabled');
+    localStorage.removeItem('homehub-push-enabled');
+    localStorage.removeItem('homehub-quick-actions');
+    
+    // Reset state
+    setDarkMode(true);
+    setAnimationsEnabled(true);
+    setPushEnabled(true);
+    
+    // Delete all alerts from DB
+    try {
+      await Promise.all(alerts.map(a => fetch(`/api/alerts/${a.id}`, { method: 'DELETE' })));
+      setAlerts([]);
+      toast.success('All settings and alerts reset to defaults');
+    } catch (err) {
+      toast.error('Partially reset: Failed to clear some alert rules');
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!confirm('CRITICAL: Are you sure you want to delete your account? This action is permanent and will erase all your rooms, devices, and historical data.')) return;
+    
+    try {
+      const res = await fetch('/api/auth/delete-account', { method: 'DELETE' });
+      if (res.ok) {
+        toast.success('Account deleted successfully');
+        signOut({ callbackUrl: '/login' });
+      } else {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to delete account');
+      }
+    } catch (err: any) {
+      toast.error(`Failed to delete account: ${err.message}`);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      toast.error('New passwords do not match');
+      return;
+    }
+    if (newPassword === oldPassword) {
+      toast.error('New password must be different from current password');
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldPassword, newPassword })
+      });
+      
+      const data = await res.json();
+      if (res.ok) {
+        toast.success('Password updated successfully');
+        setShowPasswordModal(false);
+        setOldPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        toast.error(data.error || 'Failed to update password');
+      }
+    } catch (err) {
+      toast.error('Failed to update password');
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-6 animate-fade-in-up pb-20">
       {/* Header */}
       <div>
         <h1 className="headline-font text-2xl font-bold text-on-surface">Settings</h1>
@@ -275,7 +368,7 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* General Settings Sections */}
+      {/* Quick Actions Sections */}
       <section className="bg-surface-container rounded-2xl p-5 border border-outline-variant/20">
         <h2 className="headline-font text-xl font-bold text-on-surface mb-6 flex items-center gap-2">
           <span className="material-symbols-outlined text-secondary">bolt</span>
@@ -292,37 +385,90 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {settingsSections.map((section) => (
-        <section key={section.title} className="bg-surface-container rounded-2xl p-5 border border-outline-variant/20">
-          <h2 className="headline-font text-xl font-bold text-on-surface mb-6 flex items-center gap-2">
-            <span className={`material-symbols-outlined ${section.color}`}>{section.icon}</span>
-            {section.title}
-          </h2>
-          <div className="space-y-4">
-            {section.items.map((item) => (
-              <div key={item.label} className="flex items-center justify-between bg-surface-container-high rounded-xl p-4 border border-outline-variant/10">
-                <div>
-                  <p className="font-medium text-on-surface">{item.label}</p>
-                  <p className="text-sm text-on-surface-variant/70">{item.description}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  {item.coming ? (
-                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-primary/10 text-primary">Soon</span>
-                  ) : (
-                    <button
-                      className={`relative w-10 h-5 rounded-full transition-all duration-300 ${item.enabled ? 'bg-primary' : 'bg-surface-container-highest'
-                        }`}
-                    >
-                      <span className={`absolute top-1 w-3 h-3 rounded-full bg-white shadow transition-all duration-300 ${item.enabled ? 'left-6' : 'left-1'
-                        }`} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+      {/* Notifications Section */}
+      <section className="bg-surface-container rounded-2xl p-5 border border-outline-variant/20">
+        <h2 className="headline-font text-xl font-bold text-on-surface mb-6 flex items-center gap-2">
+          <span className="material-symbols-outlined text-primary">notifications</span>
+          Notifications
+        </h2>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between bg-surface-container-high rounded-xl p-4 border border-outline-variant/10">
+            <div>
+              <p className="font-medium text-on-surface">Push Notifications</p>
+              <p className="text-sm text-on-surface-variant/70">Receive alerts for device events</p>
+            </div>
+            <button
+              onClick={handlePushToggle}
+              className={`relative w-10 h-5 rounded-full transition-all duration-300 ${pushEnabled ? 'bg-primary' : 'bg-surface-container-highest'}`}
+            >
+              <span className={`absolute top-1 w-3 h-3 rounded-full bg-white shadow transition-all duration-300 ${pushEnabled ? 'left-6' : 'left-1'}`} />
+            </button>
           </div>
-        </section>
-      ))}
+          <div className="flex items-center justify-between bg-surface-container-high rounded-xl p-4 border border-outline-variant/10 opacity-50">
+            <div>
+              <p className="font-medium text-on-surface">Email Alerts</p>
+              <p className="text-sm text-on-surface-variant/70">Send critical alerts via email</p>
+            </div>
+            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-primary/10 text-primary">Soon</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Appearance Section */}
+      <section className="bg-surface-container rounded-2xl p-5 border border-outline-variant/20">
+        <h2 className="headline-font text-xl font-bold text-on-surface mb-6 flex items-center gap-2">
+          <span className="material-symbols-outlined text-tertiary">palette</span>
+          Appearance
+        </h2>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between bg-surface-container-high rounded-xl p-4 border border-outline-variant/10">
+            <div>
+              <p className="font-medium text-on-surface">Dark Mode</p>
+              <p className="text-sm text-on-surface-variant/70">Always use dark theme</p>
+            </div>
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className={`relative w-10 h-5 rounded-full transition-all duration-300 ${darkMode ? 'bg-primary' : 'bg-surface-container-highest'}`}
+            >
+              <span className={`absolute top-1 w-3 h-3 rounded-full bg-white shadow transition-all duration-300 ${darkMode ? 'left-6' : 'left-1'}`} />
+            </button>
+          </div>
+          <div className="flex items-center justify-between bg-surface-container-high rounded-xl p-4 border border-outline-variant/10">
+            <div>
+              <p className="font-medium text-on-surface">Animations</p>
+              <p className="text-sm text-on-surface-variant/70">Enable UI animations</p>
+            </div>
+            <button
+              onClick={() => setAnimationsEnabled(!animationsEnabled)}
+              className={`relative w-10 h-5 rounded-full transition-all duration-300 ${animationsEnabled ? 'bg-primary' : 'bg-surface-container-highest'}`}
+            >
+              <span className={`absolute top-1 w-3 h-3 rounded-full bg-white shadow transition-all duration-300 ${animationsEnabled ? 'left-6' : 'left-1'}`} />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Security Section */}
+      <section className="bg-surface-container rounded-2xl p-5 border border-outline-variant/20">
+        <h2 className="headline-font text-xl font-bold text-on-surface mb-6 flex items-center gap-2">
+          <span className="material-symbols-outlined text-error">security</span>
+          Security
+        </h2>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between bg-surface-container-high rounded-xl p-4 border border-outline-variant/10">
+            <div>
+              <p className="font-medium text-on-surface">Change Password</p>
+              <p className="text-sm text-on-surface-variant/70">Update your account password</p>
+            </div>
+            <button 
+              onClick={() => setShowPasswordModal(true)}
+              className="px-4 py-2 rounded-xl bg-surface-container-highest text-on-surface text-sm font-medium hover:bg-outline-variant/20 transition-colors"
+            >
+              Update
+            </button>
+          </div>
+        </div>
+      </section>
 
       {/* Danger Zone */}
       <section className="bg-surface-container rounded-2xl p-5 border border-error/20">
@@ -336,17 +482,79 @@ export default function SettingsPage() {
               <p className="font-medium text-on-surface">Reset All Settings</p>
               <p className="text-sm text-on-surface-variant/70">Erase all custom configurations and revert to defaults.</p>
             </div>
-            <button className="px-4 py-2 rounded-xl bg-error/20 text-error text-sm font-medium hover:bg-error/30 transition-colors">Reset</button>
+            <button onClick={handleResetSettings} className="px-4 py-2 rounded-xl bg-error/20 text-error text-sm font-medium hover:bg-error/30 transition-colors">Reset</button>
           </div>
           <div className="flex items-center justify-between bg-surface-container-high rounded-xl p-4 border border-error/10">
             <div>
               <p className="font-medium text-on-surface">Delete Account</p>
               <p className="text-sm text-on-surface-variant/70">Permanently delete your account and all associated data.</p>
             </div>
-            <button className="px-4 py-2 rounded-xl bg-error/20 text-error text-sm font-medium hover:bg-error/30 transition-colors">Delete</button>
+            <button onClick={handleDeleteAccount} className="px-4 py-2 rounded-xl bg-error/20 text-error text-sm font-medium hover:bg-error/30 transition-colors">Delete</button>
           </div>
         </div>
       </section>
+
+      {/* Change Password Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="w-full max-w-md bg-surface-container rounded-[2.5rem] border border-outline-variant/20 p-8 shadow-2xl animate-in zoom-in-95 duration-300">
+            <h3 className="headline-font text-2xl font-bold text-on-surface mb-2">Change Password</h3>
+            <p className="text-sm text-on-surface-variant mb-6">Enter your details to update your password.</p>
+            
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div>
+                <label className="text-[10px] uppercase font-bold text-on-surface-variant/60 block mb-1.5 ml-1">Current Password</label>
+                <input 
+                  type="password" 
+                  required
+                  value={oldPassword}
+                  onChange={e => setOldPassword(e.target.value)}
+                  className="w-full bg-surface-container-high border border-outline-variant/30 rounded-2xl px-4 py-3 text-sm outline-none text-on-surface focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] uppercase font-bold text-on-surface-variant/60 block mb-1.5 ml-1">New Password</label>
+                <input 
+                  type="password" 
+                  required
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  className="w-full bg-surface-container-high border border-outline-variant/30 rounded-2xl px-4 py-3 text-sm outline-none text-on-surface focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] uppercase font-bold text-on-surface-variant/60 block mb-1.5 ml-1">Confirm New Password</label>
+                <input 
+                  type="password" 
+                  required
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  className="w-full bg-surface-container-high border border-outline-variant/30 rounded-2xl px-4 py-3 text-sm outline-none text-on-surface focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all"
+                />
+              </div>
+              
+              <div className="flex gap-3 pt-4">
+                <button 
+                  type="button" 
+                  onClick={() => setShowPasswordModal(false)}
+                  className="flex-1 py-3.5 rounded-2xl border border-outline-variant/30 text-on-surface font-bold hover:bg-surface-container-highest transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={changingPassword}
+                  className="flex-1 py-3.5 rounded-2xl primary-gradient text-white font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
+                >
+                  {changingPassword ? 'Updating...' : 'Update'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+
