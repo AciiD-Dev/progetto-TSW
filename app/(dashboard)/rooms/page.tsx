@@ -6,6 +6,8 @@ import RoomCard from '@/components/rooms/RoomCard';
 import RoomModal from '@/components/rooms/RoomModal';
 import { useToast } from '@/components/ui/ToastProvider';
 import { Room, Device } from '@/types';
+import { useSearchParams } from 'next/navigation';
+
 
 interface LiveReading {
   device_id: number;
@@ -22,6 +24,8 @@ export default function RoomsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const toast = useToast();
+  const searchParams = useSearchParams();
+  const searchText = (searchParams.get('q') || '').toLowerCase().trim();
 
   useEffect(() => {
     Promise.all([
@@ -52,7 +56,35 @@ export default function RoomsPage() {
   // evita errory se dispostivi non formato array
   const safeRooms = Array.isArray(rooms) ? rooms : [];
   const safeDevices = Array.isArray(devices) ? devices : [];
+
+  const filteredRooms = safeRooms.filter((room)=> {
+    const roomName = room.name.toLowerCase();
+    const roomDevices = safeDevices.filter((device)=> device.room_id === room.id);
+    const hasMatchingDevice = roomDevices.some((device) => 
+      device.name.toLowerCase().includes(searchText) ||
+      device.type.toLowerCase().includes(searchText)
+    );
+
+    return(
+      searchText === '' ||
+      roomName.includes(searchText) ||
+      hasMatchingDevice
+    );
+  });
+  const filteredDevices = safeDevices.filter((device) => {
+    const deviceName = device.name.toLowerCase();
+    const deviceType = device.type.toLowerCase();
+    const room = safeRooms.find((room) => room.id === device.room_id);
+    const roomName = room ? room.name.toLowerCase() : '';
+    return (searchText !== '' &&(
+      deviceName.includes(searchText) ||
+      deviceType.includes(searchText) ||
+      roomName.includes(searchText)
+    ));
+  });
+    
   const totalActive = safeDevices.filter((d) => d.status === 1).length;
+
   // Per-room computed values
   const getRoomStats = (roomId: number) => {
     const roomDevices = safeDevices.filter((d) => d.room_id === roomId);
@@ -143,7 +175,62 @@ export default function RoomsPage() {
           </button>
         </div>
       </div>
+      {searchText && (
+  <div className="rounded-2xl border border-outline-variant/20 bg-surface-container p-4">
+    <div className="flex items-center justify-between mb-4">
+      <div>
+        <h2 className="headline-font text-lg font-bold text-on-surface">
+          Search results
+        </h2>
+        <p className="text-sm text-on-surface-variant">
+          Results for "{searchText}"
+        </p>
+      </div>
 
+      <span className="text-xs text-on-surface-variant">
+        {filteredDevices.length} device{filteredDevices.length !== 1 ? 's' : ''} found
+      </span>
+    </div>
+
+    {filteredDevices.length === 0 ? (
+      <p className="text-sm text-on-surface-variant">
+        No devices match your search.
+      </p>
+    ) : (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {filteredDevices.map((device) => {
+          const room = safeRooms.find((room) => room.id === device.room_id);
+
+          return (
+            <a
+              key={device.id}
+              href={`/rooms/${device.room_id}?q=${encodeURIComponent(searchText)}`}
+              className="rounded-xl border border-outline-variant/20 bg-background p-4 hover:border-primary/40 transition-colors"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-on-surface">
+                    {device.name}
+                  </h3>
+
+                  <p className="text-xs text-on-surface-variant mt-1">
+                    {device.type} · {room?.name || 'Unknown room'}
+                  </p>
+                </div>
+
+                <span
+                  className={`w-2 h-2 rounded-full mt-1 ${
+                    device.status === 1 ? 'bg-tertiary' : 'bg-outline-variant'
+                  }`}
+                />
+              </div>
+            </a>
+          );
+        })}
+      </div>
+    )}
+  </div>
+)}
       {/* Rooms Grid */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -155,12 +242,14 @@ export default function RoomsPage() {
             />
           ))}
         </div>
-      ) : safeRooms.length === 0 ? (
+      ) : filteredRooms.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <div className="w-16 h-16 rounded-2xl bg-surface-container flex items-center justify-center">
             <span className="material-symbols-outlined text-4xl text-on-surface-variant/30">meeting_room</span>
           </div>
-          <p className="text-on-surface-variant text-sm">No rooms configured yet.</p>
+          <p className="text-on-surface-variant text-sm">
+            { searchText ? 'No rooms match your search.' : 'No rooms configured yet.' }
+          </p>
           <button 
             onClick={() => { setEditingRoom(null); setShowModal(true); }}
             className="text-sm text-primary hover:text-primary/80 flex items-center gap-1 transition-colors"
@@ -171,7 +260,7 @@ export default function RoomsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {safeRooms.map((room) => {
+          {filteredRooms.map((room) => {
             const { activeCount, totalCount, currentTemp } = getRoomStats(room.id);
             return (
               <RoomCard

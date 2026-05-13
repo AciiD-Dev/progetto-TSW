@@ -2,7 +2,7 @@
 'use client';
 
 import React from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname,useRouter, useSearchParams } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 
 import NotificationCenter from './NotificationCenter';
@@ -26,7 +26,10 @@ export default function DashboardTopBar({
   sidebarCollapsed,
 }: DashboardTopBarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
+  const [searchValue, setSearchValue] = React.useState(searchParams.get('q') || '' );
   const [dynamicNames, setDynamicNames] = React.useState<Record<string, string>>({});
 
   React.useEffect(() => {
@@ -42,6 +45,26 @@ export default function DashboardTopBar({
         .catch(console.error);
     }
   }, [pathname]);
+  React.useEffect(() => {
+    setSearchValue(searchParams.get('q') || '');
+  }, [searchParams]);
+
+
+  const handleSearchChange = (event : React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    setSearchValue(value);
+    const trimmedValue = value.trim();
+
+   
+    if(trimmedValue) {
+      const params = new URLSearchParams();
+      params.set('q', trimmedValue);
+      router.push(`/rooms?${params.toString()}`);
+    } else {
+      router.push('/rooms');
+    }
+    
+  };
 
   const handleLogout = () => {
     signOut({ callbackUrl: '/login' });
@@ -135,11 +158,27 @@ export default function DashboardTopBar({
       {/* Right: search mock + user */}
       <div className="flex items-center gap-2">
         {/* Search (desktop) */}
-        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface-variant/60 text-sm cursor-pointer hover:border-outline-variant/60 transition-colors group">
-          <span className="material-symbols-outlined text-[16px] group-hover:text-on-surface-variant transition-colors">search</span>
-          <span className="text-xs">Search devices…</span>
-          <kbd className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-surface-container-high border border-outline-variant/20 font-mono">⌘K</kbd>
-        </div>
+        <div className="hidden md:flex items-center gap-2 w-[360px] px-3 py-1.5 rounded-lg bg-surface-container border border-outline-variant/30 text-on-surface-variant/60 text-sm hover:border-outline-variant/60 transition-colors group">
+        <span className="material-symbols-outlined text-[18px] group-hover:text-on-surface-variant transition-colors">
+         search
+        </span>
+
+        <input type="search" value={searchValue} onChange={handleSearchChange} placeholder="Search rooms or devices..."
+         className="flex-1 bg-transparent text-sm text-on-surface outline-none placeholder:text-on-surface-variant/60"
+         />
+
+         {searchValue && (
+           <button type="button" onClick={() => {
+              setSearchValue('');
+              router.push('/rooms');
+            }}
+          className="flex items-center justify-center text-on-surface-variant hover:text-on-surface"
+          aria-label="Clear search"
+          >
+        <span className="material-symbols-outlined text-[16px]">close</span>
+        </button>
+  )}
+</div>
 
         {/* Notification bell */}
         <NotificationCenter />

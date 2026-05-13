@@ -2,7 +2,7 @@
 'use client';
 
 import React, { use, useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter,useParams, useSearchParams } from 'next/navigation';
 import AddDeviceModal from '@/components/devices/AddDeviceModal';
 import DeviceCard from '@/components/devices/DeviceCard';
 import { useToast } from '@/components/ui/ToastProvider';
@@ -32,6 +32,8 @@ export default function RoomDetailPage({
   const { id } = use(params);
   const router  = useRouter();
   const toast = useToast();
+  const searchParams = useSearchParams();
+  const searchText = (searchParams.get('q') || '').toLowerCase().trim();
 
   const [room,      setRoom]      = useState<Room | null>(null);
   const [devices,   setDevices]   = useState<Device[]>([]);
@@ -139,10 +141,20 @@ export default function RoomDetailPage({
   const liveValueFor = (deviceId: number) =>
     liveData.find((l) => l.device_id === deviceId)?.value;
 
+  //search devices 
+  const searchedDevices = devices.filter((d) =>{
+    const deviceName = d.name.toLowerCase();
+    const deviceType = d.type.toLowerCase();
+    return (
+      searchText === '' ||
+      deviceName.includes(searchText) ||
+      deviceType.includes(searchText)
+    );
+  });
   // Filtered devices
   const filteredDevices = filter === 'all'
-    ? devices
-    : devices.filter((d) => d.type === filter);
+    ? searchedDevices
+    : searchedDevices.filter((d) => d.type === filter);
 
   // Group by type
   const devicesByType = deviceTypeOrder.reduce<Record<string, Device[]>>((acc, type) => {
