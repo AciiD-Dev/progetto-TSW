@@ -109,8 +109,9 @@ export default function RoomsPage() {
  
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
-      {/* Header */}
+    <>
+      <div className="space-y-6 animate-fade-in-up">
+        {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <h1 className="headline-font text-2xl font-bold text-on-surface">Rooms</h1>
@@ -135,9 +136,9 @@ export default function RoomsPage() {
           </div>
           <button 
             onClick={() => { setEditingRoom(null); setShowModal(true); }}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-on-primary text-sm font-medium hover:bg-primary/90 transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl primary-gradient text-on-primary text-sm font-bold shadow-lg shadow-primary/10 transition-all"
           >
-            <span className="material-symbols-outlined text-base">add</span>
+            <span className="material-symbols-outlined text-base font-bold">add</span>
             Add Room
           </button>
         </div>
@@ -186,14 +187,15 @@ export default function RoomsPage() {
           })}
         </div>
       )}
+    </div>
 
-      {showModal && (
+    {showModal && (
         <RoomModal 
           initialData={editingRoom ? { id: editingRoom.id, name: editingRoom.name, icon: editingRoom.icon } : undefined}
           onClose={() => { setShowModal(false); setEditingRoom(null); }}
           onSave={handleSaveRoom}
         />
       )}
-    </div>
+    </>
   );
 }

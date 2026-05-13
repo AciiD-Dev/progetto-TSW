@@ -111,6 +111,16 @@ function getDb(): Database.Database {
       is_active   INTEGER NOT NULL DEFAULT 1,
       created_at  TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS notifications (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      type        TEXT    NOT NULL, -- 'alert' | 'mode_change' | 'system'
+      title       TEXT    NOT NULL,
+      message     TEXT    NOT NULL,
+      is_read     INTEGER NOT NULL DEFAULT 0,
+      created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+    );
   `);
 
   // ── Seed default admin user ─────────────────────────────────────────────

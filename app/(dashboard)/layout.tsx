@@ -94,7 +94,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           ${sidebarCollapsed ? 'lg:ml-[68px]' : 'lg:ml-60'}
         `}
       >
-        <div className="p-5 lg:p-7 custom-scrollbar">
+        <div className="p-5 lg:p-7 pb-24 lg:pb-24 custom-scrollbar">
           <ToastProvider>{children}</ToastProvider>
         </div>
       </main>

@@ -33,11 +33,11 @@ export async function GET(request: NextRequest) {
 
         let reading = device.value + noise;
 
-        // Clamp to realistic bounds
+        // Clamp to realistic bounds (aligned with dashboard ranges)
         if (device.type === 'thermostat') {
           reading = Math.max(10, Math.min(35, reading));
         } else if (device.type === 'humidity') {
-          reading = Math.max(10, Math.min(95, reading));
+          reading = Math.max(20, Math.min(80, reading));
         }
 
         reading = parseFloat(reading.toFixed(1));
@@ -48,13 +48,26 @@ export async function GET(request: NextRequest) {
         insertedCount++;
 
         // Check alerts
-        const activeAlerts = db.prepare("SELECT * FROM alerts WHERE device_id = ? AND is_active = 1").all(device.id) as any[];
+        const activeAlerts = db.prepare(`
+          SELECT alerts.*, devices.name as device_name 
+          FROM alerts 
+          JOIN devices ON alerts.device_id = devices.id
+          WHERE alerts.device_id = ? AND alerts.is_active = 1
+        `).all(device.id) as any[];
+
         for (const alert of activeAlerts) {
           let triggered = false;
           if (alert.rule_type === 'gt' && reading > alert.threshold) triggered = true;
           if (alert.rule_type === 'lt' && reading < alert.threshold) triggered = true;
           
           if (triggered) {
+            if (!alert.triggered_at) {
+              // First time triggering - Create notification
+              db.prepare(`
+                INSERT INTO notifications (user_id, type, title, message)
+                VALUES (?, ?, ?, ?)
+              `).run(alert.user_id, 'alert', `Alert: ${alert.device_name}`, alert.message);
+            }
             db.prepare('UPDATE alerts SET triggered_at = ? WHERE id = ?').run(now, alert.id);
           } else {
             // Reset triggered_at if condition is no longer met

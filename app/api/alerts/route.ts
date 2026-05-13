@@ -33,18 +33,34 @@ export async function POST(request: NextRequest) {
     const userId = Number(session.user.id);
 
     const rawBody = await request.json();
+    console.log('[POST /api/alerts] Request body:', rawBody);
+    
     const result = validate(rawBody, createAlertSchema);
 
     if (!result.valid) {
+      console.warn('[POST /api/alerts] Validation failed:', result.errors);
       return NextResponse.json({ error: result.errors[0].message }, { status: 400 });
     }
 
     const { device_id, rule_type, threshold, message } = rawBody;
 
     const db = getDb();
-    const device = db.prepare('SELECT id FROM devices WHERE id = ? AND user_id = ?').get(device_id, userId);
+    const device = db.prepare('SELECT id, type FROM devices WHERE id = ? AND user_id = ?').get(device_id, userId) as any;
+    
     if (!device) {
+      console.warn(`[POST /api/alerts] Device ${device_id} not found for user ${userId}`);
       return NextResponse.json({ error: 'Device not found or unauthorized' }, { status: 404 });
+    }
+
+    // Range validation based on device type
+    if (device.type === 'thermostat') {
+      if (threshold < 10 || threshold > 35) {
+        return NextResponse.json({ error: 'Temperature threshold must be between 10 and 35' }, { status: 400 });
+      }
+    } else if (device.type === 'humidity') {
+      if (threshold < 20 || threshold > 80) {
+        return NextResponse.json({ error: 'Humidity threshold must be between 20 and 80' }, { status: 400 });
+      }
     }
 
     const insertResult = db.prepare(`
@@ -60,8 +76,8 @@ export async function POST(request: NextRequest) {
     `).get(insertResult.lastInsertRowid);
 
     return NextResponse.json(alert, { status: 201 });
-  } catch (err) {
-    console.error('[POST /api/alerts]', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  } catch (err: any) {
+    console.error('[POST /api/alerts] Error:', err.message);
+    return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 });
   }
 }

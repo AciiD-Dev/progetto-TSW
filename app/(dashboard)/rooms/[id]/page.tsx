@@ -187,8 +187,9 @@ export default function RoomDetailPage({
   }
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
-      {/* Header */}
+    <>
+      <div className="space-y-6 animate-fade-in-up">
+        {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <button
@@ -207,9 +208,9 @@ export default function RoomDetailPage({
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-on-primary text-sm font-medium hover:bg-primary/90 transition-colors"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl primary-gradient text-on-primary text-sm font-bold shadow-lg shadow-primary/10 transition-all"
         >
-          <span className="material-symbols-outlined text-[17px]">add</span>
+          <span className="material-symbols-outlined text-[17px] font-bold">add</span>
           Add Device
         </button>
       </div>
@@ -313,14 +314,15 @@ export default function RoomDetailPage({
           ))}
         </div>
       )}
-
-      {showModal && (
-        <AddDeviceModal
-          onClose={() => setShowModal(false)}
-          roomId={parseInt(id)}
-          onAdd={handleAddDevice}
-        />
-      )}
     </div>
+
+    {showModal && (
+      <AddDeviceModal
+        onClose={() => setShowModal(false)}
+        roomId={parseInt(id)}
+        onAdd={handleAddDevice}
+      />
+    )}
+  </>
   );
 }

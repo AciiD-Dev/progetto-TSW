@@ -250,6 +250,28 @@ export default function DashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ operations: ops })
       });
+
+      // Log notification for mode changes
+      if (actionId === 'night_mode') {
+        fetch('/api/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'mode_change', title: 'System Mode', message: 'Night Mode activated' })
+        }).catch(() => {});
+      } else if (actionId === 'away_mode') {
+        fetch('/api/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'mode_change', title: 'System Mode', message: 'Away Mode activated' })
+        }).catch(() => {});
+      } else if (actionId === 'eco_mode') {
+        fetch('/api/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'mode_change', title: 'System Mode', message: 'Eco Mode activated' })
+        }).catch(() => {});
+      }
+
     } catch (e) {
       console.error('[QuickAction Error]', e);
       // Revert strategy can be added here or rely on SSE

@@ -91,11 +91,17 @@ export default function AddDeviceModal({ roomId, onClose, onAdd }: AddDeviceModa
   // API with retry
   const api = useApiWithRetry();
 
-  // Close on Escape
+  // Close on Escape and lock body scroll
   useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = 'hidden';
+
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    return () => {
+      document.body.style.overflow = originalStyle;
+      window.removeEventListener('keydown', handler);
+    };
   }, [onClose]);
 
   const handleTypeChange = (t: DeviceType) => {
@@ -167,7 +173,7 @@ export default function AddDeviceModal({ roomId, onClose, onAdd }: AddDeviceModa
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto custom-scrollbar max-h-[75vh]">
           {/* Name input with validation */}
           <div>
             <label
@@ -237,26 +243,34 @@ export default function AddDeviceModal({ roomId, onClose, onAdd }: AddDeviceModa
                 Initial Value
               </label>
               <span className={`text-sm font-bold tabular-nums ${selectedType.color}`}>
-                {value}{type === 'thermostat' ? ' °C' : ' %'}
+                {value}{type === 'thermostat' ? ' °C' : type === 'plug' ? ' W' : ' %'}
               </span>
             </div>
             <input
               id="device-value"
               type="range"
-              min={type === 'thermostat' ? 15 : 0}
-              max={type === 'thermostat' ? 30 : 100}
-              step={type === 'thermostat' ? 0.5 : 1}
+              min={type === 'thermostat' ? 10 : type === 'humidity' ? 20 : 0}
+              max={type === 'thermostat' ? 35 : type === 'humidity' ? 80 : type === 'plug' ? 3000 : 100}
+              step={type === 'thermostat' || type === 'humidity' ? 0.5 : type === 'plug' ? 10 : 1}
               value={value}
               onChange={(e) => setValue(parseFloat(e.target.value))}
-              className="w-full"
+              className="w-full accent-primary"
               style={{
                 background: `linear-gradient(to right, var(--color-primary) 0%, var(--color-primary) ${
                   type === 'thermostat'
-                    ? ((value - 15) / 15) * 100
+                    ? ((value - 10) / (35 - 10)) * 100
+                    : type === 'humidity'
+                    ? ((value - 20) / (80 - 20)) * 100
+                    : type === 'plug'
+                    ? (value / 3000) * 100
                     : value
                 }%, var(--color-surface-container-highest) ${
                   type === 'thermostat'
-                    ? ((value - 15) / 15) * 100
+                    ? ((value - 10) / (35 - 10)) * 100
+                    : type === 'humidity'
+                    ? ((value - 20) / (80 - 20)) * 100
+                    : type === 'plug'
+                    ? (value / 3000) * 100
                     : value
                 }%, var(--color-surface-container-highest) 100%)`,
               }}

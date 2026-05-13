@@ -5,6 +5,8 @@ import React from 'react';
 import { usePathname } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 
+import NotificationCenter from './NotificationCenter';
+
 const breadcrumbMap: Record<string, string> = {
   '/':         'Dashboard',
   '/rooms':    'Rooms',
@@ -140,10 +142,7 @@ export default function DashboardTopBar({
         </div>
 
         {/* Notification bell */}
-        <button className="relative flex items-center justify-center w-8 h-8 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors">
-          <span className="material-symbols-outlined text-[20px]">notifications</span>
-          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-primary" />
-        </button>
+        <NotificationCenter />
 
         {/* User chip */}
         <div className="flex items-center gap-2 pl-2 border-l border-outline-variant/20">

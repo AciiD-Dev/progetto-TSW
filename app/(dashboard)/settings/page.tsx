@@ -62,19 +62,30 @@ export default function SettingsPage() {
     
     setMounted(true);
 
-    // Load alerts and devices
-    Promise.all([
-      fetch('/api/alerts').then(res => res.json()),
-      fetch('/api/devices').then(res => res.json())
-    ]).then(([alertsData, devicesData]) => {
-      if (Array.isArray(alertsData)) setAlerts(alertsData);
-      if (Array.isArray(devicesData)) setDevices(devicesData.filter((d: any) => d.type === 'thermostat' || d.type === 'humidity'));
-      setLoading(false);
-    }).catch(err => {
-      console.error(err);
-      setLoading(false);
-      toast.error('Failed to load alerts');
-    });
+    const fetchData = async () => {
+      try {
+        // Trigger cron to generate readings and check alerts
+        await fetch('/api/cron/generate-readings').catch(() => {});
+
+        const [alertsRes, devicesRes] = await Promise.all([
+          fetch('/api/alerts', { cache: 'no-store' }),
+          fetch('/api/devices', { cache: 'no-store' })
+        ]);
+        const alertsData = await alertsRes.json();
+        const devicesData = await devicesRes.json();
+
+        if (Array.isArray(alertsData)) setAlerts(alertsData);
+        if (Array.isArray(devicesData)) setDevices(devicesData.filter((d: any) => d.type === 'thermostat' || d.type === 'humidity'));
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+    const interval = setInterval(fetchData, 3000);
+    return () => clearInterval(interval);
   }, [toast]);
 
   // Sync theme with DOM (only after mounting)
@@ -114,7 +125,6 @@ export default function SettingsPage() {
       toast.error('Please fill in all fields');
       return;
     }
-
     try {
       const res = await fetch('/api/alerts', {
         method: 'POST',
@@ -126,15 +136,20 @@ export default function SettingsPage() {
           message
         })
       });
-      if (!res.ok) throw new Error('Failed to create alert');
-      const newAlert = await res.json();
-      setAlerts(prev => [newAlert, ...prev]);
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to create alert');
+      }
+      
+      setAlerts(prev => [data, ...prev]);
       toast.success('Alert added successfully');
       setDeviceId('');
       setThreshold('');
       setMessage('');
-    } catch (err) {
-      toast.error('Failed to create alert');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to create alert');
     }
   };
 
@@ -290,10 +305,19 @@ export default function SettingsPage() {
               </select>
             </div>
             <div className="lg:col-span-1">
-              <label className="text-[10px] uppercase font-bold text-on-surface-variant/60 block mb-1">Threshold</label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="text-[10px] uppercase font-bold text-on-surface-variant/60">Threshold</label>
+                {deviceId && (
+                  <span className="text-[9px] text-primary font-bold">
+                    {devices.find(d => d.id === parseInt(deviceId))?.type === 'thermostat' ? 'Range: 10-35' : 'Range: 20-80'}
+                  </span>
+                )}
+              </div>
               <input
                 type="number"
                 step="0.1"
+                min={deviceId ? (devices.find(d => d.id === parseInt(deviceId))?.type === 'thermostat' ? 10 : 20) : undefined}
+                max={deviceId ? (devices.find(d => d.id === parseInt(deviceId))?.type === 'thermostat' ? 35 : 80) : undefined}
                 placeholder="e.g. 25.5"
                 value={threshold}
                 onChange={e => setThreshold(e.target.value)}
