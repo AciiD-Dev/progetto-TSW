@@ -35,8 +35,8 @@ export default function TemperatureChart({
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  const accentColor = color === 'primary' ? '#5eead4' : color === 'secondary' ? '#a78bfa' : '#fba474';
-  const glowColor   = color === 'primary' ? 'rgba(94,234,212,' : color === 'secondary' ? 'rgba(167,139,250,' : 'rgba(251,164,116,';
+  const accentColor = color === 'primary' ? '#38BDF8' : color === 'secondary' ? '#6366F1' : '#10B981';
+  const glowColor   = color === 'primary' ? 'rgba(56,189,248,' : color === 'secondary' ? 'rgba(99,102,241,' : 'rgba(16,185,129,';
 
   // Build labels & values, inserting nulls where there are time gaps (device was off)
   const GAP_THRESHOLD_MS = 30_000; // 30 seconds — anything longer is a gap

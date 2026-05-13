@@ -15,7 +15,7 @@ export default function NavBar({ className = '' }: NavBarProps) {
       <div className="flex justify-between items-center w-full px-6 md:px-12 py-5 max-w-[1920px] mx-auto">
         <Link href="/" className="flex items-center gap-2.5 group">
           <div className="w-8 h-8 primary-gradient rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 transition-transform group-hover:scale-110">
-            <span 
+            <span
               className="material-symbols-outlined text-background text-[18px]"
               style={{ fontVariationSettings: "'FILL' 1" }}
             >
@@ -26,7 +26,7 @@ export default function NavBar({ className = '' }: NavBarProps) {
             HomeHub
           </span>
         </Link>
-        
+
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-10">
           <Link href="/" className="text-on-surface-variant font-medium hover:text-primary transition-colors text-sm">Dashboard</Link>
@@ -34,19 +34,10 @@ export default function NavBar({ className = '' }: NavBarProps) {
           <Link href="/pricing" className="text-on-surface-variant font-medium hover:text-primary transition-colors text-sm">Pricing</Link>
           <Link href="/support" className="text-on-surface-variant font-medium hover:text-primary transition-colors text-sm">Support</Link>
         </div>
-        
-        <div className="hidden md:flex items-center gap-4">
-          <Link href="/login" className="text-on-surface-variant font-semibold hover:text-on-surface transition-colors text-sm px-4 py-2">
-            Login
-          </Link>
-          <Link href="/register" className="primary-gradient text-white font-bold px-6 py-2.5 rounded-xl shadow-lg shadow-primary/10 hover:brightness-110 active:scale-95 transition-all text-sm">
-            Get Started
-          </Link>
-        </div>
 
         {/* Mobile Toggle Button */}
-        <button 
-          className="md:hidden text-on-surface p-2 hover:bg-surface-container rounded-xl active:scale-95 transition-transform" 
+        <button
+          className="md:hidden text-on-surface p-2 hover:bg-surface-container rounded-xl active:scale-95 transition-transform"
           onClick={() => setIsOpen(!isOpen)}
         >
           <span className="material-symbols-outlined">{isOpen ? 'close' : 'menu'}</span>
@@ -72,17 +63,6 @@ export default function NavBar({ className = '' }: NavBarProps) {
             <Link href="/support" onClick={() => setIsOpen(false)} className="text-on-surface font-semibold text-lg flex items-center gap-3">
               <span className="material-symbols-outlined text-primary">help</span>
               Support
-            </Link>
-          </div>
-          
-          <div className="w-full h-px bg-outline-variant/10" />
-          
-          <div className="flex flex-col gap-4">
-            <Link href="/login" onClick={() => setIsOpen(false)} className="w-full py-4 text-center border border-outline-variant/20 rounded-2xl font-bold text-on-surface active:bg-surface-container-high">
-              Login
-            </Link>
-            <Link href="/register" onClick={() => setIsOpen(false)} className="w-full py-4 text-center primary-gradient text-white rounded-2xl font-bold shadow-lg shadow-primary/10 active:brightness-90">
-              Sign Up
             </Link>
           </div>
         </div>

@@ -46,14 +46,14 @@ export default function DashboardNav({ collapsed = false, onClose }: DashboardNa
                 group flex items-center gap-3 rounded-xl transition-all duration-200 select-none
                 ${collapsed ? 'px-0 py-3 justify-center' : 'px-3 py-2.5'}
                 ${isActive
-                  ? 'bg-primary/10 text-primary'
+                  ? 'bg-active/10 text-active'
                   : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'
                 }
               `}
             >
               <span
                 className={`material-symbols-outlined text-[20px] flex-shrink-0 transition-all duration-200
-                  ${isActive ? 'text-primary' : 'text-on-surface-variant group-hover:text-on-surface'}
+                  ${isActive ? 'text-active' : 'text-on-surface-variant group-hover:text-on-surface'}
                 `}
                 style={{
                   fontVariationSettings: isActive
@@ -67,7 +67,7 @@ export default function DashboardNav({ collapsed = false, onClose }: DashboardNa
                 <span className="font-medium text-sm leading-none">{label}</span>
               )}
               {isActive && !collapsed && (
-                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-active flex-shrink-0" />
               )}
             </Link>
           );
@@ -76,21 +76,7 @@ export default function DashboardNav({ collapsed = false, onClose }: DashboardNa
 
       {/* Bottom section */}
       <div className={`mt-auto px-2 pt-3 border-t border-outline-variant/20 space-y-0.5`}>
-        {process.env.NODE_ENV === 'development' && (
-          <Link
-            href="/debug"
-            title={collapsed ? 'Database Inspector' : undefined}
-            className={`
-              group flex items-center gap-3 rounded-xl transition-all duration-200 select-none
-              text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high
-              ${pathname.startsWith('/debug') ? 'bg-primary/10 text-primary' : ''}
-              ${collapsed ? 'px-0 py-3 justify-center' : 'px-3 py-2.5'}
-            `}
-          >
-            <span className="material-symbols-outlined text-[20px] flex-shrink-0">bug_report</span>
-            {!collapsed && <span className="text-sm font-medium">Debug</span>}
-          </Link>
-        )}
+
          <Link
   href="/support"
   onClick={onClose}
@@ -98,7 +84,7 @@ export default function DashboardNav({ collapsed = false, onClose }: DashboardNa
   className={`
     group flex items-center gap-3 rounded-xl transition-all duration-200 select-none
     text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high
-    ${pathname.startsWith('/support') ? 'bg-primary/10 text-primary' : ''}
+    ${pathname.startsWith('/support') ? 'bg-active/10 text-active' : ''}
     ${collapsed ? 'px-0 py-3 justify-center' : 'px-3 py-2.5'}
   `}
 >

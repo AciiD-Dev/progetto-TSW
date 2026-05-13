@@ -52,6 +52,10 @@ export default function RootLayout({
                 } else {
                   document.documentElement.classList.add('dark');
                 }
+                
+                if (localStorage.getItem('homehub-animations-enabled') === 'false') {
+                  document.documentElement.classList.add('no-animations');
+                }
               } catch (_) {}
             `,
           }}

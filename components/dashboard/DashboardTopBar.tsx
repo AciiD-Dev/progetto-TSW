@@ -10,7 +10,6 @@ const breadcrumbMap: Record<string, string> = {
   '/rooms':    'Rooms',
   '/history':  'History',
   '/settings': 'Settings',
-  '/debug':    'Debug Inspector',
 };
 
 interface DashboardTopBarProps {

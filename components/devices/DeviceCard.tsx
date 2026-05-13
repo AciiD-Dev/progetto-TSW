@@ -144,7 +144,7 @@ export default function DeviceCard({
               onClick={handleToggle}
               className={`
                 w-8 h-4 rounded-full relative transition-all duration-300 flex-shrink-0
-                ${isOn ? 'bg-primary' : 'bg-outline-variant/40'}
+                ${isOn ? 'bg-active' : 'bg-outline-variant/40'}
               `}
             >
               <span
@@ -211,7 +211,7 @@ export default function DeviceCard({
               onClick={handleToggle}
               className={`
                 relative w-10 h-5 rounded-full transition-all duration-300 flex-shrink-0
-                ${isOn ? 'bg-primary' : 'bg-outline-variant/40'}
+                ${isOn ? 'bg-active' : 'bg-outline-variant/40'}
               `}
               aria-label={isOn ? 'Turn off' : 'Turn on'}
             >
@@ -267,9 +267,9 @@ export default function DeviceCard({
             onChange={(e) => setSliderLocal(Number(e.target.value))}
             onMouseUp={(e) => handleSliderCommit(Number((e.target as HTMLInputElement).value))}
             onTouchEnd={(e) => handleSliderCommit(Number((e.target as HTMLInputElement).value))}
-            className="w-full h-1.5 rounded-full cursor-pointer accent-primary"
+            className="w-full h-1.5 rounded-full cursor-pointer accent-active"
             style={{
-              background: `linear-gradient(to right, var(--color-primary) 0%, var(--color-primary) ${
+              background: `linear-gradient(to right, var(--color-active) 0%, var(--color-active) ${
                 ((sliderLocal - (cfg.sliderMin ?? 0)) / ((cfg.sliderMax ?? 100) - (cfg.sliderMin ?? 0))) * 100
               }%, var(--color-surface-container-highest) ${
                 ((sliderLocal - (cfg.sliderMin ?? 0)) / ((cfg.sliderMax ?? 100) - (cfg.sliderMin ?? 0))) * 100
