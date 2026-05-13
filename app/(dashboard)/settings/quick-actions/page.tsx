@@ -108,9 +108,17 @@ export default function QuickActionsSettingsPage() {
               <div className="flex items-center gap-2">
                 <input 
                   type="number" 
+                  min="10"
+                  max="35"
+                  step="0.5"
                   value={config.night_mode.thermostatTemp} 
-                  onChange={e => setConfig(c => ({ ...c, night_mode: { ...c.night_mode, thermostatTemp: parseFloat(e.target.value) || 19 } }))}
-                  className="w-20 bg-surface-container-highest border border-outline-variant/30 rounded-lg px-3 py-1.5 text-sm text-center text-on-surface"
+                  onChange={e => {
+                    const val = parseFloat(e.target.value);
+                    if (isNaN(val)) return;
+                    const clamped = Math.max(10, Math.min(35, val));
+                    setConfig(c => ({ ...c, night_mode: { ...c.night_mode, thermostatTemp: clamped } }));
+                  }}
+                  className="w-20 bg-surface-container-highest border border-outline-variant/30 rounded-lg px-3 py-1.5 text-sm text-center text-on-surface focus:outline-none focus:border-primary/50"
                 />
                 <span className="text-on-surface-variant">°C</span>
               </div>
@@ -169,9 +177,17 @@ export default function QuickActionsSettingsPage() {
               <div className="flex items-center gap-2">
                 <input 
                   type="number" 
+                  min="10"
+                  max="35"
+                  step="0.5"
                   value={config.away_mode.thermostatTemp} 
-                  onChange={e => setConfig(c => ({ ...c, away_mode: { ...c.away_mode, thermostatTemp: parseFloat(e.target.value) || 16 } }))}
-                  className="w-20 bg-surface-container-highest border border-outline-variant/30 rounded-lg px-3 py-1.5 text-sm text-center text-on-surface"
+                  onChange={e => {
+                    const val = parseFloat(e.target.value);
+                    if (isNaN(val)) return;
+                    const clamped = Math.max(10, Math.min(35, val));
+                    setConfig(c => ({ ...c, away_mode: { ...c.away_mode, thermostatTemp: clamped } }));
+                  }}
+                  className="w-20 bg-surface-container-highest border border-outline-variant/30 rounded-lg px-3 py-1.5 text-sm text-center text-on-surface focus:outline-none focus:border-primary/50"
                 />
                 <span className="text-on-surface-variant">°C</span>
               </div>
@@ -194,9 +210,17 @@ export default function QuickActionsSettingsPage() {
               <div className="flex items-center gap-2">
                 <input 
                   type="number" 
+                  min="10"
+                  max="35"
+                  step="0.5"
                   value={config.eco_mode.thermostatTemp} 
-                  onChange={e => setConfig(c => ({ ...c, eco_mode: { ...c.eco_mode, thermostatTemp: parseFloat(e.target.value) || 20 } }))}
-                  className="w-20 bg-surface-container-highest border border-outline-variant/30 rounded-lg px-3 py-1.5 text-sm text-center text-on-surface"
+                  onChange={e => {
+                    const val = parseFloat(e.target.value);
+                    if (isNaN(val)) return;
+                    const clamped = Math.max(10, Math.min(35, val));
+                    setConfig(c => ({ ...c, eco_mode: { ...c.eco_mode, thermostatTemp: clamped } }));
+                  }}
+                  className="w-20 bg-surface-container-highest border border-outline-variant/30 rounded-lg px-3 py-1.5 text-sm text-center text-on-surface focus:outline-none focus:border-primary/50"
                 />
                 <span className="text-on-surface-variant">°C</span>
               </div>

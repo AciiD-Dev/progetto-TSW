@@ -41,8 +41,15 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid status value' }, { status: 400 });
     }
 
-    if (typeof newValue !== 'number' || newValue < 0 || newValue > 100) {
-      return NextResponse.json({ error: 'Invalid value (must be 0-100)' }, { status: 400 });
+    // Determine range based on type
+    let min = 0;
+    let max = 100;
+    if (existing.type === 'thermostat') { min = 10; max = 35; }
+    else if (existing.type === 'humidity') { min = 20; max = 80; }
+    else if (existing.type === 'plug') { max = 3000; }
+
+    if (typeof newValue !== 'number' || newValue < min || newValue > max) {
+      return NextResponse.json({ error: `Invalid value (must be ${min}-${max})` }, { status: 400 });
     }
 
     const updateStartTime = Date.now();

@@ -132,16 +132,16 @@ export default function DevicePanel({
               <input
                 id={`slider-${device.id}`}
                 type="range"
-                min={15}
-                max={30}
+                min={10}
+                max={35}
                 step={0.5}
                 value={device.value}
                 onChange={(e) => onSliderChange(device, parseFloat(e.target.value))}
                 className="w-full accent-[#6dddff] h-2 cursor-pointer"
               />
               <div className="flex justify-between text-[10px] text-slate-500 mt-1">
-                <span>15°C</span>
-                <span>30°C</span>
+                <span>10°C</span>
+                <span>35°C</span>
               </div>
             </section>
           )}

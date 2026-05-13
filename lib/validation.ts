@@ -33,7 +33,7 @@ export const deviceSchema = {
   value: {
     type: 'number',
     min: 0,
-    max: 100,
+    max: 3000,
   },
 };
 
