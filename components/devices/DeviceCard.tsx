@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Device } from '@/types';
 
 interface DeviceCardProps {
@@ -99,6 +99,12 @@ export default function DeviceCard({
   const isOn    = device.status === 1;
   const displayValue = liveValue ?? device.value;
   const [sliderLocal, setSliderLocal] = useState(device.value);
+
+  // Sync local slider state when the parent updates device.value
+  // (e.g. via quick actions like Away/Night/Eco mode)
+  useEffect(() => {
+    setSliderLocal(device.value);
+  }, [device.value]);
 
   const handleToggle = () => {
     onToggle(device, isOn ? 0 : 1);

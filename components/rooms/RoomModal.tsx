@@ -34,12 +34,15 @@ export default function RoomModal({ initialData, onClose, onSave }: RoomModalPro
   }, [onClose]);
 
 
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
       setError('Room name is required.');
       return;
     }
+
     setError('');
     setBusy(true);
 
@@ -118,19 +121,7 @@ export default function RoomModal({ initialData, onClose, onSave }: RoomModalPro
                 </button>
               ))}
             </div>
-            
-            <div className="mt-4">
-              <label className="block text-[10px] font-semibold text-on-surface-variant/60 uppercase tracking-widest mb-2">
-                Custom Icon Name
-              </label>
-              <input 
-                type="text" 
-                value={icon}
-                onChange={(e) => setIcon(e.target.value)}
-                placeholder="Material icon name..."
-                className="w-full bg-surface-container-high border border-outline-variant/30 rounded-xl px-4 py-3 text-xs text-on-surface placeholder:text-on-surface-variant/30 focus:outline-none focus:ring-2 focus:border-primary/50 focus:ring-primary/10 transition-all"
-              />
-            </div>
+
           </div>
 
           {error && (
