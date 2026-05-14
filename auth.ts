@@ -92,10 +92,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         console.log('[auth:jwt] Processing user login for:', user.email);
         const db = getDb();
         const normalizedEmail = ((user.email ?? token.email) as string ?? "").trim().toLowerCase();
-        const dbUser = db.prepare('SELECT id FROM users WHERE LOWER(email) = ?').get(normalizedEmail) as { id: number } | undefined;
-        token.id = dbUser ? dbUser.id.toString() : user.id;
-        token.name = user.name;
-        console.log('[auth:jwt] Token prepared, id:', token.id);
+        
+        // Fetch user info from DB to ensure name consistency
+        const dbUser = db.prepare('SELECT id, name FROM users WHERE LOWER(email) = ?').get(normalizedEmail) as { id: number, name: string } | undefined;
+        
+        if (dbUser) {
+          token.id = dbUser.id.toString();
+          token.name = dbUser.name;
+          console.log('[auth:jwt] Token prepared from DB, id:', token.id, 'name:', token.name);
+        } else {
+          token.id = user.id;
+          token.name = user.name;
+          console.log('[auth:jwt] Token prepared from provider (user not in DB yet), id:', token.id);
+        }
       }
       return token;
     },
