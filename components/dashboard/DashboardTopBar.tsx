@@ -45,25 +45,37 @@ export default function DashboardTopBar({
         .catch(console.error);
     }
   }, [pathname]);
+
+  // Sync search value from URL only when the URL query changes externally
   React.useEffect(() => {
-    setSearchValue(searchParams.get('q') || '');
+    const q = searchParams.get('q') || '';
+    setSearchValue((prev) => {
+      // Only update if this is a real external change, not our own navigation
+      if (q !== prev.trim()) return q;
+      return prev;
+    });
   }, [searchParams]);
 
+  // Debounced navigation: navigate only after the user stops typing for 300ms
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      const trimmed = searchValue.trim();
+      if (trimmed) {
+        const params = new URLSearchParams();
+        params.set('q', trimmed);
+        router.push(`/rooms?${params.toString()}`);
+      } else if (searchValue === '' || searchValue.trim() === '') {
+        // Only navigate away if the input was explicitly cleared
+        if (pathname.startsWith('/rooms') && searchParams.has('q')) {
+          router.push('/rooms');
+        }
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchValue]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSearchChange = (event : React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value;
-    setSearchValue(value);
-    const trimmedValue = value.trim();
-
-   
-    if(trimmedValue) {
-      const params = new URLSearchParams();
-      params.set('q', trimmedValue);
-      router.push(`/rooms?${params.toString()}`);
-    } else {
-      router.push('/rooms');
-    }
-    
+    setSearchValue(event.target.value);
   };
 
   const handleLogout = () => {
@@ -163,7 +175,7 @@ export default function DashboardTopBar({
          search
         </span>
 
-        <input type="search" value={searchValue} onChange={handleSearchChange} placeholder="Search rooms or devices..."
+        <input type="text" value={searchValue} onChange={handleSearchChange} placeholder="Search rooms or devices..."
          className="flex-1 bg-transparent text-sm text-on-surface outline-none placeholder:text-on-surface-variant/60"
          />
 

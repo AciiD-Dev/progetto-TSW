@@ -6,21 +6,33 @@ const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
-// Ensure tables exist
+// ── Create all tables (must match lib/server/db.ts exactly) ───────────────────
 db.exec(`
-  CREATE TABLE IF NOT EXISTS rooms (
-    id   INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT    NOT NULL,
-    icon TEXT    NOT NULL
+  CREATE TABLE IF NOT EXISTS users (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    email         TEXT    NOT NULL UNIQUE,
+    name          TEXT    NOT NULL,
+    password_hash TEXT    NOT NULL,
+    created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS rooms (
+    id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name    TEXT    NOT NULL,
+    icon    TEXT    NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS devices (
     id      INTEGER PRIMARY KEY AUTOINCREMENT,
-    room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    room_id INTEGER REFERENCES rooms(id) ON DELETE CASCADE,
     name    TEXT    NOT NULL,
     type    TEXT    NOT NULL,
     status  INTEGER NOT NULL DEFAULT 0,
     value   REAL    NOT NULL DEFAULT 0
   );
+
   CREATE TABLE IF NOT EXISTS sensor_readings (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     device_id   INTEGER NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
@@ -28,37 +40,80 @@ db.exec(`
     unit        TEXT    NOT NULL,
     recorded_at TEXT    NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS alerts (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    device_id    INTEGER NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+    rule_type    TEXT    NOT NULL CHECK(rule_type IN ('gt', 'lt')),
+    threshold    REAL    NOT NULL,
+    message      TEXT    NOT NULL,
+    is_active    INTEGER NOT NULL DEFAULT 1,
+    created_at   TEXT    NOT NULL DEFAULT (datetime('now')),
+    triggered_at TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS sequences (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name        TEXT NOT NULL,
+    description TEXT,
+    nodes       TEXT NOT NULL,
+    edges       TEXT NOT NULL,
+    is_active   INTEGER NOT NULL DEFAULT 1,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS notifications (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type        TEXT    NOT NULL,
+    title       TEXT    NOT NULL,
+    message     TEXT    NOT NULL,
+    is_read     INTEGER NOT NULL DEFAULT 0,
+    created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+  );
 `);
 
-// Idempotent: clear all data AND reset auto-increment counters
-// so device/room IDs always restart from 1 on every seed run
+// ── Idempotent: clear all data AND reset auto-increment counters ──────────────
 db.exec(`
   DELETE FROM sensor_readings;
+  DELETE FROM notifications;
+  DELETE FROM alerts;
+  DELETE FROM sequences;
   DELETE FROM devices;
   DELETE FROM rooms;
-  DELETE FROM sqlite_sequence WHERE name IN ('rooms', 'devices', 'sensor_readings');
+  DELETE FROM users;
+  DELETE FROM sqlite_sequence;
 `);
 
+// ── Seed default admin user ───────────────────────────────────────────────────
+// Hash for 'password123' (bcryptjs, rounds=10)
+const defaultHash = '$2b$10$9id7CE.DrcXr5ezBG1FZJOEg3iVmQ.ZhhIKodeaOjDCP./KqC4jaS';
+db.prepare('INSERT INTO users (email, name, password_hash) VALUES (?, ?, ?)')
+  .run('admin@home.local', 'Admin', defaultHash);
+
+const adminUserId = 1;
+
 // ─── Rooms ────────────────────────────────────────────────────────────────────
-const insertRoom = db.prepare('INSERT INTO rooms (name, icon) VALUES (?, ?)');
+const insertRoom = db.prepare('INSERT INTO rooms (user_id, name, icon) VALUES (?, ?, ?)');
 
 const rooms = [
-  { name: 'Living Room', icon: 'living' },
-  { name: 'Kitchen', icon: 'kitchen' },
-  { name: 'Bedroom', icon: 'bed' },
-  { name: 'Bathroom', icon: 'bathroom' },
-  { name: 'Garden', icon: 'yard' },
+  { name: 'Living Room', icon: 'chair' },
+  { name: 'Bedroom',     icon: 'bed' },
+  { name: 'Kitchen',     icon: 'kitchen' },
+  { name: 'Office',      icon: 'computer' },
 ];
 
 const roomIds: number[] = [];
 for (const r of rooms) {
-  const result = insertRoom.run(r.name, r.icon);
+  const result = insertRoom.run(adminUserId, r.name, r.icon);
   roomIds.push(result.lastInsertRowid as number);
 }
 
 // ─── Devices per room ─────────────────────────────────────────────────────────
 const insertDevice = db.prepare(
-  'INSERT INTO devices (room_id, name, type, status, value) VALUES (?, ?, ?, ?, ?)'
+  'INSERT INTO devices (user_id, room_id, name, type, status, value) VALUES (?, ?, ?, ?, ?, ?)'
 );
 
 interface DeviceSeed {
@@ -71,70 +126,59 @@ interface DeviceSeed {
 const roomDevices: DeviceSeed[][] = [
   // Living Room
   [
-    { name: 'Ceiling Light', type: 'light', status: 1, value: 80 },
-    { name: 'Floor Lamp', type: 'light', status: 0, value: 60 },
-    { name: 'Thermostat', type: 'thermostat', status: 1, value: 22 },
-    { name: 'Humidity Sensor', type: 'humidity', status: 1, value: 52 },
-  ],
-  // Kitchen
-  [
-    { name: 'Kitchen Light', type: 'light', status: 1, value: 100 },
-    { name: 'Under Cabinet', type: 'light', status: 0, value: 40 },
-    { name: 'Humidity Sensor', type: 'humidity', status: 1, value: 58 },
-    { name: 'Roller Blinds', type: 'blinds', status: 0, value: 100 },
+    { name: 'Ceiling Light',   type: 'light',      status: 1, value: 80 },
+    { name: 'Smart Thermostat', type: 'thermostat', status: 1, value: 21.5 },
+    { name: 'Humidity Sensor',  type: 'humidity',   status: 1, value: 52 },
   ],
   // Bedroom
   [
-    { name: 'Bedside Lamp', type: 'light', status: 0, value: 30 },
-    { name: 'Ceiling Light', type: 'light', status: 0, value: 70 },
-    { name: 'Thermostat', type: 'thermostat', status: 1, value: 20 },
-    { name: 'Humidity Sensor', type: 'humidity', status: 1, value: 45 },
+    { name: 'Bedside Lamp',  type: 'light',      status: 0, value: 40 },
+    { name: 'AC Thermostat', type: 'thermostat', status: 1, value: 20.0 },
+    { name: 'Window Blind',  type: 'blinds',     status: 0, value: 30 },
   ],
-  // Bathroom
+  // Kitchen
   [
-    { name: 'Mirror Light', type: 'light', status: 1, value: 100 },
-    { name: 'Ceiling Light', type: 'light', status: 0, value: 100 },
-    { name: 'Humidity Sensor', type: 'humidity', status: 1, value: 65 },
+    { name: 'Kitchen Light',   type: 'light',    status: 1, value: 100 },
+    { name: 'Humidity Sensor', type: 'humidity',  status: 1, value: 61 },
   ],
-  // Garden
+  // Office
   [
-    { name: 'Garden Lights', type: 'light', status: 1, value: 100 },
-    { name: 'Path Lights', type: 'light', status: 0, value: 100 },
-    { name: 'Irrigation Blinds', type: 'blinds', status: 0, value: 0 },
-    { name: 'Humidity Sensor', type: 'humidity', status: 1, value: 55 },
+    { name: 'Desk Lamp',         type: 'light',      status: 1, value: 60 },
+    { name: 'Office Thermostat', type: 'thermostat', status: 1, value: 22.0 },
   ],
 ];
 
-// ─── Sensor readings (48h, hourly) ────────────────────────────────────────────
+// ─── Sensor readings (48h, every 30 min) ──────────────────────────────────────
 const insertReading = db.prepare(
   'INSERT INTO sensor_readings (device_id, value, unit, recorded_at) VALUES (?, ?, ?, ?)'
 );
 
 const now = Date.now();
-const ONE_HOUR = 60 * 60 * 1000;
+const THIRTY_MIN = 30 * 60 * 1000;
 
 for (let ri = 0; ri < roomIds.length; ri++) {
   const roomId = roomIds[ri];
   for (const dev of roomDevices[ri]) {
-    const res = insertDevice.run(roomId, dev.name, dev.type, dev.status, dev.value);
+    const res = insertDevice.run(adminUserId, roomId, dev.name, dev.type, dev.status, dev.value);
     const deviceId = res.lastInsertRowid as number;
 
     if (dev.type === 'thermostat' || dev.type === 'humidity') {
-      const unit = dev.type === 'thermostat' ? '°C' : '%';
-      const base = dev.value as number;
-      const range = dev.type === 'thermostat' ? 3 : 8;
+      const unit  = dev.type === 'thermostat' ? '°C' : '%';
+      const base  = dev.value;
+      const range = dev.type === 'thermostat' ? 2.5 : 8;
 
-      for (let h = 47; h >= 0; h--) {
-        const ts = new Date(now - h * ONE_HOUR).toISOString();
-        // Realistic variation: sine-like drift + small random noise
-        const drift = Math.sin((47 - h) / 12 * Math.PI) * (range / 2);
-        const noise = (Math.random() - 0.5) * 2;
-        const value = parseFloat((base + drift + noise).toFixed(1));
-        insertReading.run(deviceId, value, unit, ts);
+      // One reading every 30 min for past 48 hours = 97 readings per device
+      for (let i = 96; i >= 0; i--) {
+        const ts = new Date(now - i * THIRTY_MIN).toISOString();
+        // Sine-wave variation so charts look realistic
+        const val = base
+          + Math.sin(i * 0.3) * range * 0.5
+          + (Math.random() - 0.5) * range * 0.3;
+        insertReading.run(deviceId, Math.round(val * 10) / 10, unit, ts);
       }
     }
   }
 }
 
-console.log('✅ Database seeded successfully');
+console.log('✅ Database seeded successfully: 1 user, 4 rooms, 10 devices, ~485 sensor readings');
 db.close();
