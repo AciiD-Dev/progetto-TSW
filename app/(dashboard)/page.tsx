@@ -6,6 +6,8 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import DeviceCard from '@/components/devices/DeviceCard';
 import { SensorReading, Room, Device } from '@/types';
+import CurrentPlanBadge from '@/components/CurrentPlanBadge';
+import { getPlanFromStorage, PLAN_LIMITS,Plan } from '@/lib/plans';
 
 const TemperatureChart = dynamic(
   () => import('@/components/dashboard/TemperatureChart'),
@@ -57,6 +59,8 @@ export default function DashboardPage() {
   const [avgHum, setAvgHum] = useState<string>('—');
   const [activeAlerts, setActiveAlerts] = useState<number>(0);
   const [chartReady, setChartReady] = useState(false);
+  const [plan, setPlan] = useState<Plan>('free');
+  
 
   const [cards, setCards] = useState([
     { id: 'temp', props: { icon: "thermostat", label: "Avg Temperature", unit: "°C", color: "primary", description: "Across all thermostat sensors" } },
@@ -64,6 +68,11 @@ export default function DashboardPage() {
     { id: 'humidity', props: { icon: "humidity_mid", label: "Avg Humidity", unit: "%", color: "tertiary", description: "Across all humidity sensors" } },
     { id: 'alerts', props: { icon: "notifications_active", label: "Active Alerts" } },
   ]);
+
+  //Recupero piano attivo 
+  useEffect(() => {
+    setPlan(getPlanFromStorage());
+  }, []);
 
   // Single mount effect — waits for hydration to complete, then:
   // 1. restores card order from localStorage
@@ -277,17 +286,23 @@ export default function DashboardPage() {
       // Revert strategy can be added here or rely on SSE
     }
   };
-
+  const canSeeTrends = PLAN_LIMITS[plan].historyDays > 0;
   return (
     <div className="space-y-6 animate-fade-in-up">
       {/* Header */}
-      <div>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
         <h1 className="headline-font text-2xl font-bold text-on-surface">
           {getGreeting()}, {session?.user?.name?.split(' ')[0] || 'User'}
         </h1>
         <p className="text-sm text-on-surface-variant mt-0.5">
           Your home at a glance · Live updates every 3s
         </p>
+      </div>
+      {/*mostra il piano attuale dell'utente*/}
+      <div className="w-full lg:w-64">
+        <CurrentPlanBadge/>
+      </div>
       </div>
 
       {/* Quick Actions */}
@@ -317,33 +332,68 @@ export default function DashboardPage() {
       {/* Bento Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         {/* Charts */}
-        <div className="lg:col-span-2 space-y-4">
-          <h3 className="headline-font font-bold text-on-surface">Temperature & Humidity Trends</h3>
-          {chartReady && (
-            <div className="flex overflow-x-auto gap-4 custom-scrollbar snap-x snap-mandatory pb-4">
-              {devices.filter(d => d.type === 'thermostat' || d.type === 'humidity').length === 0 ? (
-                <div className="bg-surface-container rounded-2xl border border-outline-variant/20 p-5 w-full flex items-center justify-center min-h-[250px]">
-                  <p className="text-on-surface-variant">No climate sensors available.</p>
-                </div>
-              ) : (
-                devices.filter(d => d.type === 'thermostat' || d.type === 'humidity').map((sensor) => {
-                  const room = rooms.find(r => r.id === sensor.room_id);
-                  return (
-                    <div key={sensor.id} className="min-w-full sm:min-w-[calc(100%-40px)] lg:min-w-full snap-start bg-surface-container rounded-2xl border border-outline-variant/20 p-5 overflow-hidden">
-                      <TemperatureChart
-                        readings={sensorsReadings[sensor.id] || []}
-                        title={`${sensor.name} - ${room?.name || 'Unassigned'}`}
-                        subtitle="Last 24 hours"
-                        color={sensor.type === 'thermostat' ? 'secondary' : 'primary'}
-                        type={sensor.type as 'thermostat' | 'humidity'}
-                      />
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          )}
-        </div>
+      <div className="lg:col-span-2 space-y-4">
+       <h3 className="headline-font font-bold text-on-surface">
+        Temperature & Humidity Trends
+       </h3>
+
+      {canSeeTrends ? (
+       chartReady && (
+      <div className="flex overflow-x-auto gap-4 custom-scrollbar snap-x snap-mandatory pb-4">
+        {devices.filter(d => d.type === 'thermostat' || d.type === 'humidity').length === 0 ? (
+          <div className="bg-surface-container rounded-2xl border border-outline-variant/20 p-5 w-full flex items-center justify-center min-h-[250px]">
+            <p className="text-on-surface-variant">
+              No climate sensors available.
+            </p>
+          </div>
+           ) : (
+          devices.filter(d => d.type === 'thermostat' || d.type === 'humidity').map((sensor) => {
+            const room = rooms.find(r => r.id === sensor.room_id);
+
+            return (
+              <div
+                key={sensor.id}
+                className="min-w-full sm:min-w-[calc(100%-40px)] lg:min-w-full snap-start bg-surface-container rounded-2xl border border-outline-variant/20 p-5 overflow-hidden"
+              >
+                <TemperatureChart
+                  readings={sensorsReadings[sensor.id] || []}
+                  title={`${sensor.name} - ${room?.name || 'Unassigned'}`}
+                  subtitle="Last 24 hours"
+                  color={sensor.type === 'thermostat' ? 'secondary' : 'primary'}
+                  type={sensor.type as 'thermostat' | 'humidity'}
+                />
+              </div>
+            );
+          })
+        )}
+      </div>
+    )
+  ) : (
+    <div className="rounded-2xl border border-outline-variant/20 bg-surface-container p-8 text-center shadow-sm min-h-[250px] flex flex-col items-center justify-center">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+        <span className="material-symbols-outlined">
+          lock
+        </span>
+      </div>
+
+      <h3 className="text-xl font-bold text-on-surface">
+        Trends non disponibili
+      </h3>
+
+      <p className="mt-2 max-w-md text-sm leading-6 text-on-surface-variant">
+        Il piano Essential non include lo storico dei dati. Passa a Home Pro
+        per visualizzare l’andamento di temperatura e umidità nel tempo.
+      </p>
+
+      <Link
+        href="/pricing"
+        className="mt-6 inline-flex items-center justify-center rounded-2xl bg-primary px-6 py-3 text-sm font-bold text-on-primary shadow-lg shadow-primary/20 transition hover:opacity-90"
+      >
+        Upgrade plan
+      </Link>
+    </div>
+  )}
+</div>
 
         {/* Rooms Panel */}
         <div className="bg-surface-container rounded-2xl border border-outline-variant/20 p-5">

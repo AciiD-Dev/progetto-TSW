@@ -7,6 +7,7 @@ import RoomModal from '@/components/rooms/RoomModal';
 import { useToast } from '@/components/ui/ToastProvider';
 import { Room, Device } from '@/types';
 import { useSearchParams } from 'next/navigation';
+import { getPlanFromStorage, PLAN_LIMITS, Plan } from '@/lib/plans';
 
 
 interface LiveReading {
@@ -16,6 +17,7 @@ interface LiveReading {
 }
 
 export default function RoomsPage() {
+   const [plan, setPlan] = useState<Plan>('free');
   const [rooms,    setRooms]    = useState<Room[]>([]);
   const [devices,  setDevices]  = useState<Device[]>([]);
   const [liveData, setLiveData] = useState<LiveReading[]>([]);
@@ -26,6 +28,12 @@ export default function RoomsPage() {
   const toast = useToast();
   const searchParams = useSearchParams();
   const searchText = (searchParams.get('q') || '').toLowerCase().trim();
+ 
+  // recupera piano utente
+  useEffect(() => {
+    
+    setPlan(getPlanFromStorage());
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -102,8 +110,16 @@ export default function RoomsPage() {
 
     return { activeCount, totalCount, currentTemp: tempReading?.value ?? null };
   };
-
+  const handleAddRoom = () => {
+    const maxRooms = PLAN_LIMITS[plan].maxRooms;
+    if(safeRooms.length >= maxRooms) {
+      toast.error('Il piano free consente al massimo 2 stanze');
+      return;}
+      setEditingRoom(null);
+      setShowModal(true);
+    }
   const handleSaveRoom = async (data: { name: string; icon: string }) => {
+    
     if (editingRoom) {
       const res = await fetch(`/api/rooms/${editingRoom.id}`, {
         method: 'PATCH',
@@ -167,7 +183,7 @@ export default function RoomsPage() {
             {totalActive} active
           </div>
           <button 
-            onClick={() => { setEditingRoom(null); setShowModal(true); }}
+            onClick={handleAddRoom}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl primary-gradient text-on-primary text-sm font-bold shadow-lg shadow-primary/10 transition-all"
           >
             <span className="material-symbols-outlined text-base font-bold">add</span>
@@ -251,7 +267,7 @@ export default function RoomsPage() {
             { searchText ? 'No rooms match your search.' : 'No rooms configured yet.' }
           </p>
           <button 
-            onClick={() => { setEditingRoom(null); setShowModal(true); }}
+            onClick={handleAddRoom}
             className="text-sm text-primary hover:text-primary/80 flex items-center gap-1 transition-colors"
           >
             <span className="material-symbols-outlined text-[16px]">add</span>

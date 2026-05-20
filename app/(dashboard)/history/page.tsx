@@ -1,10 +1,11 @@
 
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, use } from 'react';
 import dynamic from 'next/dynamic';
 import { Device, Room, SensorReading } from '@/types';
-
+import { getPlanFromStorage, PLAN_LIMITS, Plan  } from '@/lib/plans';
+import PlanBlocked from '@/components/PlanBlocked';
 const TemperatureChart = dynamic(
   () => import("@/components/dashboard/TemperatureChart"),
   {
@@ -18,12 +19,19 @@ const TemperatureChart = dynamic(
 );
 
 export default function HistoryPage() {
+  const [plan, setPlan] = useState<Plan>('free');
+  const [ready, setReady] = useState(false);
   const [rooms,      setRooms]      = useState<Room[]>([]);
   const [devices,    setDevices]    = useState<Device[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [range,      setRange]      = useState<'24h' | '7d'>('24h');
   const [readings,   setReadings]   = useState<SensorReading[]>([]);
   const [loading,    setLoading]    = useState(false);
+  useEffect(() => {
+    setPlan(getPlanFromStorage());
+    setReady(true);
+  }, []); 
+
 
   useEffect(() => {
     Promise.all([
@@ -77,6 +85,15 @@ export default function HistoryPage() {
     rooms.find((r) => r.id === device.room_id)?.name ?? 'Unknown';
 
   const selectedDevice = devices.find((d) => d.id === selectedId);
+  if (!ready) return null;
+  const canSeeHistory = PLAN_LIMITS[plan].historyDays > 0;
+  if (!canSeeHistory){
+    return(
+      <PlanBlocked
+      title="storico non disponibile"
+      message="Il tuo piano attuale non consente di visualizzare lo storico dei dati. Aggiorna il tuo piano per accedere a questa funzionalità e monitorare le tendenze dei tuoi sensori nel tempo."
+      />);
+  }
 
   // Stats from readings
   const values = readings.map((r) => r.value);

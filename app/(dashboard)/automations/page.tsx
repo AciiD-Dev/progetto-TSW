@@ -3,7 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useToast } from '@/components/ui/ToastProvider';
-
+import { getPlanFromStorage,PLAN_LIMITS, Plan } from '@/lib/plans';
+import PlanBlocked from '@/components/PlanBlocked';
+import { pl } from 'zod/v4/locales';
+{/*import { set } from 'zod';*/}
 interface Sequence {
   id: number;
   name: string;
@@ -13,9 +16,15 @@ interface Sequence {
 }
 
 export default function AutomationsPage() {
+  const [plan, setPlan] = useState<Plan>('free')  ;
+  const [ready, setReady] = useState(false);
   const [sequences, setSequences] = useState<Sequence[]>([]);
   const [loading, setLoading] = useState(true);
   const toast = useToast();
+  useEffect(() => {
+    setPlan(getPlanFromStorage());
+    setReady(true);
+  }, []);
 
   useEffect(() => {
     fetch('/api/sequences')
@@ -60,6 +69,17 @@ export default function AutomationsPage() {
       toast.error('Failed to delete automation');
     }
   };
+
+    if (!ready) return null;
+    const canUseAutomations = PLAN_LIMITS[plan].automations;
+    if(!canUseAutomations) {
+      return(
+        <PlanBlocked
+          title="Automations are not available on your current plan"
+          message="Upgrade to a higher tier to create visual rule-based workflows and automate your smart home devices."
+        />
+      );
+    }
 
   return (
     <div className="space-y-8">

@@ -1,9 +1,16 @@
+'use client';
+
+import {getPlanFromStorage, Plan} from '@/lib/plans'
 import NavBar from '@/components/layout/NavBar';
 import Footer from '@/components/layout/Footer';
-import Link from 'next/link';
-import React from 'react';
+
+import React, { useEffect, useState } from 'react';
 
 export default function PricingPage() {
+  const [currentPlan, setCurrentPlan] = useState<Plan>('free');
+  useEffect(() =>{
+    setCurrentPlan(getPlanFromStorage());
+  }, []);
   return (
     <div className="bg-background text-on-surface selection:bg-primary/30 min-h-screen font-['Inter'] flex flex-col">
       <NavBar />
@@ -49,13 +56,24 @@ export default function PricingPage() {
                 Historical Data Trends
               </li>
             </ul>
-            
-            <Link
-              href="/register"
-              className="w-full py-4 px-4 rounded-2xl bg-surface-container-highest text-on-surface font-bold hover:bg-outline-variant/20 transition-all text-center"
-            >
-              Get Started
-            </Link>
+            {
+              currentPlan === 'free' ? (
+                <button disabled
+                className="block w-full rounded-2xl bg-[#F4F3FF] px-5 py-4 text-center font-bold text-[#6C63E6]"
+                >
+                  Current Plan
+                </button>
+              ) : (
+                 <a
+                   href="/checkout?plan=free"
+                   className="block w-full rounded-2xl bg-[#E9ECF3] px-5 py-4 text-center font-bold text-[#2F3545] transition hover:bg-[#DDE2EC]"
+
+                   >
+                   Get Started
+                 </a>
+                  )}
+
+           
           </div>
 
           {/* Pro Plan */}
@@ -74,10 +92,16 @@ export default function PricingPage() {
             </div>
             
             <ul className="space-y-4 mb-10 flex-grow">
+              
               <li className="flex items-center gap-3 text-on-surface text-sm font-medium">
                 <span className="material-symbols-outlined text-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
-                Unlimited Devices & Rooms
+                 Up to 15 Smart Devices
               </li>
+              <li className="flex items-center gap-3 text-on-surface text-sm font-medium">
+                <span className="material-symbols-outlined text-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+                Up to 6 Rooms
+              </li>
+
               <li className="flex items-center gap-3 text-on-surface text-sm font-medium">
                 <span className="material-symbols-outlined text-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
                 30-Day Sensor History
@@ -95,13 +119,22 @@ export default function PricingPage() {
                 Priority Support Access
               </li>
             </ul>
-            
-            <Link
-              href="/register"
-              className="w-full py-4 px-4 rounded-2xl primary-gradient text-white font-bold text-lg shadow-lg shadow-primary/25 hover:brightness-110 transition-all text-center"
+            { currentPlan === 'home_pro' ? (
+              <button disabled
+                className="block w-full rounded-2xl bg-[#F4F3FF] px-5 py-4 text-center font-bold text-[#6C63E6]"
+                >
+                  Current Plan
+                </button> 
+            ) : (
+              <a
+              href="/checkout?plan=home_pro"
+              className="block w-full rounded-2xl bg-[#6C63E6] px-5 py-4 text-center font-bold text-white shadow-[0_14px_30px_rgba(108,99,230,0.35)] transition hover:bg-[#5B54D8]"
             >
               Upgrade Now
-            </Link>
+            </a>
+            )
+            }
+            
           </div>
 
           {/* Premium Plan */}
@@ -116,6 +149,10 @@ export default function PricingPage() {
             </div>
             
             <ul className="space-y-4 mb-10 flex-grow">
+              <li className="flex items-center gap-3 text-on-surface-variant text-sm">
+                <span className="material-symbols-outlined text-secondary text-[20px]">auto_awesome</span>
+                Unlimited Devices & Rooms
+              </li>
               <li className="flex items-center gap-3 text-on-surface-variant text-sm">
                 <span className="material-symbols-outlined text-secondary text-[20px]">auto_awesome</span>
                 Multi-Home Management
@@ -133,13 +170,23 @@ export default function PricingPage() {
                 Dedicated Personal Assistant
               </li>
             </ul>
-            
-            <Link
-              href="/register"
-              className="w-full py-4 px-4 rounded-2xl border-2 border-secondary/20 text-on-surface font-bold hover:bg-secondary/10 transition-all text-center"
-            >
+             {/* bottone dinamico in base al piano attivo*/ }
+
+            {
+              currentPlan === 'infinite' ? (
+                <button 
+                disabled
+                className="block w-full rounded-2xl bg-[#F4F3FF] px-5 py-4 text-center font-bold text-[#6C63E6]"
+              >
+                Current Plan
+              </button>
+            ) : (
+              <a
+                href="/checkout?plan=infinite"
+                className="block w-full rounded-2xl bg-[#6C63E6] px-5 py-4 text-center font-bold text-white shadow-[0_14px_30px_rgba(108,99,230,0.35)] transition hover:bg-[#5B54D8]"
+              >
               Go Infinite
-            </Link>
+            </a>)}
           </div>
         </div>
 

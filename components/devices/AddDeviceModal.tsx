@@ -10,6 +10,8 @@ interface AddDeviceModalProps {
   roomId: number;
   onClose: () => void;
   onAdd: (device: Device) => void;
+  canAddDevice?: boolean; // Optional prop to control if the user can add more devices based on their plan
+  limitMessage?: string; // Optional message to show when the user has reached their device limit
 }
 
 const deviceTypes: {
@@ -76,7 +78,7 @@ const defaultValues: Record<DeviceType, number> = {
   plug:       0,
 };
 
-export default function AddDeviceModal({ roomId, onClose, onAdd }: AddDeviceModalProps) {
+export default function AddDeviceModal({ roomId, onClose, onAdd, canAddDevice, limitMessage='il piano free consente al massimo 5 dispositivi' }: AddDeviceModalProps) {
   const [type, setType] = useState<DeviceType>('light');
   const [value, setValue] = useState<number>(defaultValues.light);
   const [serverError, setServerError] = useState('');
@@ -113,7 +115,10 @@ export default function AddDeviceModal({ roomId, onClose, onAdd }: AddDeviceModa
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setServerError('');
-
+    if(!canAddDevice){
+      setServerError(limitMessage);
+      return;
+    }
     // Valida il form
     if (!form.validateForm()) {
       return;

@@ -7,7 +7,8 @@ import AddDeviceModal from '@/components/devices/AddDeviceModal';
 import DeviceCard from '@/components/devices/DeviceCard';
 import { useToast } from '@/components/ui/ToastProvider';
 import { Room, Device, DeviceType } from '@/types';
-
+import { getPlanFromStorage, PLAN_LIMITS, Plan } from '@/lib/plans';
+import { set } from 'zod';
 interface LiveReading {
   device_id: number;
   value: number;
@@ -34,13 +35,31 @@ export default function RoomDetailPage({
   const toast = useToast();
   const searchParams = useSearchParams();
   const searchText = (searchParams.get('q') || '').toLowerCase().trim();
+  const[plan, setPlan] = useState<Plan>('free');
 
   const [room,      setRoom]      = useState<Room | null>(null);
   const [devices,   setDevices]   = useState<Device[]>([]);
+  const [totalDevices, setTotalDevices] = useState(0);
   const [liveData,  setLiveData]  = useState<LiveReading[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [loading,   setLoading]   = useState(true);
   const [filter,    setFilter]    = useState<string>('all');
+  //recupero il numero totale di dispositivi 
+  useEffect(()=>{
+    fetch('/api/devices' )
+    .then((res) =>res.json())
+    .then((data) => {
+      const allDevices = Array.isArray(data) ? data : [];
+      setTotalDevices(allDevices.length);
+    })
+    .catch(()=> {
+      setTotalDevices(0);
+    });
+  },[]);
+  // recupero piano attivo 
+  useEffect(()=>{
+    setPlan(getPlanFromStorage());
+  },[]);
 
   // Load room + devices
   useEffect(() => {
@@ -131,10 +150,24 @@ export default function RoomDetailPage({
       toast.error(`Failed to delete ${device.name}`);
     }
   };
-
+  //apri il modal solo se il piano consente altri dispositivi
+  const handleOpenAddDeviceModal = () => {
+    const maxDevices = PLAN_LIMITS[plan].maxDevices;
+    if(totalDevices >= maxDevices){
+      toast.error('Il piano free consente al massimo 5 dispositivi');
+      return;
+    }
+    setShowModal(true);
+  }
   // Add device
   const handleAddDevice = (newDevice: Device) => {
+    const maxDevices = PLAN_LIMITS[plan].maxDevices;
+    if(devices.length >= maxDevices){
+      toast.error('Il piano free consente al massimo 5 dispositivi');
+      return;
+    }
     setDevices((prev) => [...prev, newDevice]);
+    setTotalDevices((prev) => prev + 1);
     toast.success(`Added ${newDevice.name}`);
   };
 
@@ -219,7 +252,7 @@ export default function RoomDetailPage({
           </p>
         </div>
         <button
-          onClick={() => setShowModal(true)}
+          onClick={handleOpenAddDeviceModal}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl primary-gradient text-on-primary text-sm font-bold shadow-lg shadow-primary/10 transition-all"
         >
           <span className="material-symbols-outlined text-[17px] font-bold">add</span>
@@ -301,7 +334,7 @@ export default function RoomDetailPage({
           </div>
           <p className="text-on-surface-variant/50">No devices found for this room or filter.</p>
           <button
-            onClick={() => setShowModal(true)}
+            onClick={handleOpenAddDeviceModal}
             className="text-sm text-primary hover:text-primary/80 flex items-center gap-1 transition-colors"
           >
             <span className="material-symbols-outlined text-[16px]">add</span>
@@ -333,6 +366,8 @@ export default function RoomDetailPage({
         onClose={() => setShowModal(false)}
         roomId={parseInt(id)}
         onAdd={handleAddDevice}
+        canAddDevice={totalDevices < PLAN_LIMITS[plan].maxDevices}
+        limitMessage="il piano free consente al massimo 5 dispositivi"
       />
     )}
   </>
